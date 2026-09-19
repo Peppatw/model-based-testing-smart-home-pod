@@ -1,10 +1,17 @@
 # Model-Based Testing, with AI assistance — Smart Home Pod
 
-A runnable companion to `docs/pod_mbt_blueprint.html`. Everything the Blueprint
-describes — 32 actions, three Markov chains, state-led, action-led and sweeping
-workers, the oracle, coverage and error clustering — is implemented here against a
-simulated device.
-Swapping `Driver` is what points it at a real bench.
+### → [Read the Blueprint](https://peppatw.github.io/model-based-testing-smart-home-pod/)
+
+Nine slides on how a device gets tested by describing it rather than by scripting it:
+what the model holds, how one worker takes a turn, and what an AI can and cannot do with
+what a run leaves behind.
+
+---
+
+A runnable companion to that Blueprint. Everything it describes — 32 actions, three
+Markov chains, state-led, action-led and sweeping workers, the oracle, coverage and
+error clustering — is implemented here against a simulated device. Swapping `Driver`
+is what points it at a real bench.
 
 Plan a run, then run the plan:
 
