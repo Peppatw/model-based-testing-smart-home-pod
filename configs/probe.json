@@ -1,0 +1,32 @@
+{
+  "sessionId": "PROBE-001",
+  "description": "Action-led: every worker fires whatever it likes at whatever state the device is in. The chain is ignored; the guard still judges, so each refused call is an assertion rather than noise.",
+  "durationMs": 14400000,
+  "probe": [
+    {
+      "workerId": "wifi-probe",
+      "component": "wifi",
+      "avgIntervalMs": 60000
+    },
+    {
+      "workerId": "bt-probe",
+      "component": "bt",
+      "avgIntervalMs": 60000
+    },
+    {
+      "workerId": "matter-probe",
+      "component": "matter",
+      "avgIntervalMs": 60000
+    }
+  ],
+  "faults": [
+    {
+      "actionName": "inject_router_reboot",
+      "atMs": 1800000
+    },
+    {
+      "actionName": "inject_phone_disconnect",
+      "atMs": 3600000
+    }
+  ]
+}

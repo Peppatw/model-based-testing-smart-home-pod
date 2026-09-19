@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Run output — a session folder is generated, not source
+runs/
+next_run.json
+
+# macOS
+.DS_Store

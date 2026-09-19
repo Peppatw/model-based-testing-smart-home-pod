@@ -1,0 +1,1846 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Model-Based Testing Blueprint</title>
+<link rel="styleslide" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#f4f5f7;
+    --surface:#ffffff;
+    --surface-2:#eceef1;
+    --ink:#151a21;
+    --ink-muted:#5a6472;
+    --accent:#a8570c;
+    --accent-soft:#f4e3cd;
+    --line:#d7dbe1;
+    --good:#3f7d4f;
+    --critical:#b23b3b;
+    --font-display:'IBM Plex Sans Condensed', ui-sans-serif, system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#11151c;
+      --surface:#171d27;
+      --surface-2:#1d2430;
+      --ink:#e8ecf2;
+      --ink-muted:#8b96a5;
+      --accent:#f0a446;
+      --accent-soft:#3a2a15;
+      --line:#2a323f;
+      --good:#6fbf80;
+      --critical:#e06868;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#11151c;
+    --surface:#171d27;
+    --surface-2:#1d2430;
+    --ink:#e8ecf2;
+    --ink-muted:#8b96a5;
+    --accent:#f0a446;
+    --accent-soft:#3a2a15;
+    --line:#2a323f;
+    --good:#6fbf80;
+    --critical:#e06868;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.55;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);}
+
+  .wrap{max-width:980px;margin:0 auto;padding:0 24px 96px;}
+
+  /* ---------- Sticky nav ---------- */
+  .nav{
+    position:sticky;top:0;z-index:10;
+    background:var(--surface);
+    border-bottom:1px solid var(--line);
+  }
+  .nav-inner{
+    max-width:980px;margin:0 auto;padding:0 24px;
+    display:flex;align-items:center;gap:20px;
+    height:48px;
+    overflow-x:auto;
+  }
+  .nav-mark{
+    font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;
+    color:var(--ink-muted);white-space:nowrap;flex:none;
+  }
+  .nav-links{display:flex;gap:16px;flex:none;}
+  .nav-links a{
+    font-family:var(--font-mono);font-size:12.5px;letter-spacing:.02em;
+    color:var(--ink-muted);text-decoration:none;white-space:nowrap;
+    padding:4px 0;border-bottom:2px solid transparent;
+  }
+  .nav-links a:hover{color:var(--ink);border-color:var(--line);}
+
+  /* ---------- Masthead ---------- */
+  .masthead{padding:52px 0 28px;border-bottom:1px solid var(--line);}
+  h1{
+    font-family:var(--font-display);
+    font-weight:700;
+    font-size:clamp(30px,5vw,44px);
+    line-height:1.08;
+    letter-spacing:-.01em;
+    margin:0 0 12px;
+    text-wrap:balance;
+  }
+
+  /* ---------- Stat strip ---------- */
+
+  /* ---------- Section ---------- */
+  section{padding:56px 0;border-bottom:1px solid var(--line);}
+  section:last-of-type{border-bottom:none;}
+  .section-eyebrow{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent);
+    letter-spacing:.06em;text-transform:uppercase;margin:0 0 8px;
+  }
+  h2{
+    font-family:var(--font-display);font-weight:600;
+    font-size:26px;margin:0 0 10px;scroll-margin-top:64px;
+  }
+  .claim{
+    font-size:15.5px;color:var(--ink-muted);max-width:68ch;margin:0 0 24px;
+  }
+  .claim strong{color:var(--ink);font-weight:600;}
+
+  /* ---------- Diagram plate ---------- */
+  figure.plate{margin:0;}
+  figure.plate + figure.plate{margin-top:28px;}
+  .plate-frame{
+    border:1px solid var(--line);
+    background-color:var(--surface);
+    background-image:
+      linear-gradient(color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 1px),
+      linear-gradient(90deg, color-mix(in srgb, var(--line) 55%, transparent) 1px, transparent 1px);
+    background-size:22px 22px;
+    padding:20px;
+    overflow-x:auto;
+  }
+  .plate-frame .mermaid{
+    font-family:var(--font-mono) !important;
+    min-width:560px;
+  }
+  figcaption{
+    font-size:13px;color:var(--ink-muted);margin-top:10px;
+    padding-left:2px;
+  }
+  figcaption b{color:var(--ink);font-weight:600;}
+
+  /* ---------- Slide 01 explainer ---------- */
+  .f0 svg{width:100%;height:auto;min-width:620px;}
+  .f0 .n{fill:var(--surface-2);stroke:var(--ink);stroke-width:1.4;}
+  .f0 .nl{fill:var(--ink);font:600 12px var(--font-mono);text-anchor:middle;}
+  .f0 .e{fill:none;stroke:var(--ink-muted);stroke-width:1.3;marker-end:url(#a0);}
+  .f0 .ef{fill:none;stroke:var(--accent);stroke-width:1.3;stroke-dasharray:4 4;marker-end:url(#a1);}
+  .f0 .al{fill:var(--ink-muted);font:400 10.5px var(--font-mono);text-anchor:middle;}
+  .f0 .pl{fill:var(--accent);font:600 11.5px var(--font-mono);text-anchor:middle;}
+  .f0 .cap{fill:var(--ink-muted);font:400 11px var(--font-mono);}
+  .f0 .box{fill:none;stroke:var(--accent);stroke-width:1;}
+
+  /* ---------- Slide 01 figure: four circles — wifi, bt, matter, fault inject ---------- */
+  .f1 svg{width:100%;height:auto;min-width:900px;}
+  .f1 .node{fill:var(--surface-2);stroke:var(--ink);stroke-width:1.4;}
+  .f1 .nlabel{fill:var(--ink);font:600 11px var(--font-mono);text-anchor:middle;}
+  .f1 .lane{fill:var(--ink-muted);font:600 11px var(--font-display);letter-spacing:.08em;}
+  .f1 .edge{fill:none;stroke:var(--ink-muted);stroke-width:1.2;marker-end:url(#ah);}
+  .f1 .act{fill:var(--ink-muted);font:400 9.5px var(--font-mono);text-anchor:middle;}
+  .f1 .p{fill:var(--accent);font:600 11px var(--font-mono);text-anchor:middle;}
+  .f1 .dut{fill:#3a2a15;stroke:var(--accent);stroke-width:1.8;}
+  .f1 .dutlabel{fill:var(--accent);font:700 12px var(--font-mono);text-anchor:middle;}
+  .f1 .faultspoke{stroke:var(--accent);stroke-width:1;stroke-dasharray:2 4;opacity:.5;}
+  .f1 .faultnode{fill:var(--accent);}
+  .f1 .factring{fill:var(--ink-muted);font:400 9.5px var(--font-mono);}
+
+  /* ---------- Slide 01 figure: TC-01 as a timeline — wifi/bt/matter lanes + fault clock ---------- */
+  .f2 svg{width:100%;height:auto;min-width:900px;background:var(--surface);}
+  .f2 .lane2{fill:var(--ink-muted);font:600 11px var(--font-display);letter-spacing:.06em;text-anchor:start;}
+  .f2 .lanebase{stroke:var(--line);stroke-width:1;}
+  .f2 .guide{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4;}
+  .f2 .axis{stroke:var(--ink-muted);stroke-width:1;}
+  .f2 .tick{fill:var(--ink-muted);font:400 9px var(--font-mono);text-anchor:middle;}
+  .f2 .bar{fill:var(--surface-2);stroke:var(--ink);stroke-width:1.2;}
+  .f2 .bar.dim{fill:var(--surface);stroke:var(--ink-muted);stroke-dasharray:3 3;}
+  .f2 .barlabel{fill:var(--ink);font:600 10.5px var(--font-mono);text-anchor:middle;}
+  .f2 .tmark{stroke:var(--ink-muted);stroke-width:1;}
+  .f2 .tdot{fill:var(--ink);}
+  .f2 .actlabel{fill:var(--ink-muted);font:400 8.5px var(--font-mono);text-anchor:middle;}
+  .f2 .reftick{fill:var(--critical);}
+  .f2 .refused{fill:var(--critical);font:600 9px var(--font-mono);text-anchor:middle;}
+  .f2 .faultdot{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.6;}
+  .f2 .faultlabel{fill:var(--accent);font:600 9.5px var(--font-mono);text-anchor:middle;}
+  .f2 .faultlabel2{fill:var(--accent);font:400 8.5px var(--font-mono);text-anchor:middle;opacity:.85;}
+
+  /* ---------- Slide 01: build a test case from a matrix ---------- */
+  .mtool{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);
+    gap:1px;background:var(--line);border:1px solid var(--line);margin-top:18px;
+  }
+  .mtool-form{background:var(--surface);padding:6px 20px 20px;margin:0;}
+  .mtool-out{background:var(--surface);padding:18px 20px 20px;}
+  .mstates{
+    width:100%;box-sizing:border-box;font-family:var(--font-mono);font-size:12.5px;
+    padding:7px 9px;border:1px solid var(--line);background:var(--bg);color:var(--ink);
+  }
+  .mstates:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .mmatrix-wrap{overflow-x:auto;}
+  .mmatrix{border-collapse:collapse;font-family:var(--font-mono);font-size:11px;}
+  .mmatrix th{
+    color:var(--ink-muted);font-weight:500;padding:4px 6px;text-align:center;
+    white-space:nowrap;max-width:120px;overflow:hidden;text-overflow:ellipsis;
+  }
+  .mmatrix td{padding:2px;}
+  .mmatrix input{
+    width:9.5em;font-family:var(--font-mono);font-size:11px;padding:4px 5px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);text-align:center;
+  }
+  /* A cell holding two or three transitions needs the room; the matrix scrolls
+     sideways rather than truncating what a TE typed. */
+  .mmatrix textarea{
+    width:13em;height:3.1em;resize:vertical;
+    font-family:var(--font-mono);font-size:11px;line-height:1.35;padding:4px 5px;
+    border:1px solid var(--line);background:var(--bg);color:var(--ink);text-align:center;
+  }
+  .mmatrix textarea:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .mmatrix td.diag textarea{border-left:2px solid var(--accent-soft);}
+  .mmatrix input:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .mmatrix td.diag input{border-left:2px solid var(--accent-soft);}
+
+  /* ---------- Slide 01: the matrix, drawn as a chain (one cluster) ---------- */
+  .f4 svg{width:100%;height:auto;min-width:420px;background:var(--surface);}
+  .f4 .mnode{fill:var(--surface-2);stroke:var(--ink);stroke-width:1.4;}
+  .f4 .mnlabel{fill:var(--ink);font:600 11px var(--font-mono);text-anchor:middle;}
+  .f4 .medge{fill:none;stroke:var(--ink-muted);stroke-width:1.2;}
+  .f4 .mact{fill:var(--ink-muted);font:400 9.5px var(--font-mono);text-anchor:middle;}
+  .f4 .mp{fill:var(--accent);font:600 11px var(--font-mono);text-anchor:middle;}
+
+  /* A prose table, not a reference table: fixed columns, everything wraps. */
+  .ref-table.compare{table-layout:fixed;}
+  .ref-table.compare td,
+  .ref-table.compare td:first-child{white-space:normal;font-family:var(--font-body);
+    font-size:13px;line-height:1.5;padding-right:20px;}
+  .ref-table.compare td:last-child{padding-right:0;color:var(--ink);}
+  .ref-table.compare th{width:50%;}
+  .ref-table.compare.three th:first-child{width:19%;}
+  .ref-table.compare.three th:nth-child(2){width:33%;}
+  .ref-table.compare.three th:last-child{width:48%;}
+  .ref-table.compare.three td:first-child{
+    font-family:var(--font-mono);font-size:12px;color:var(--ink);font-weight:500;
+  }
+  @media (max-width:640px){
+    .ref-table.compare, .ref-table.compare tbody, .ref-table.compare tr,
+    .ref-table.compare td{display:block;width:auto;}
+    .ref-table.compare thead{display:none;}
+    .ref-table.compare td{border-bottom:0;padding-bottom:4px;}
+    .ref-table.compare tr{border-bottom:1px solid var(--line);padding-bottom:10px;}
+  }
+
+  /* ---------- Notes list ---------- */
+  .notes{list-style:none;margin:20px 0 0;padding:0;display:grid;gap:10px;}
+  .notes li{
+    position:relative;
+    padding-left:26px;
+    font-size:14px;line-height:1.5;color:var(--ink-muted);
+  }
+  .notes li::before{
+    content:"→";color:var(--accent);font-family:var(--font-mono);
+    position:absolute;left:0;top:0;
+  }
+  .notes code{
+    font-family:var(--font-mono);font-size:.92em;color:var(--ink);
+    background:var(--surface-2);padding:1px 5px;border-radius:3px;
+  }
+
+  /* ---------- Reference table ---------- */
+  .table-scroll{overflow-x:auto;margin-top:22px;}
+  .ref-table{width:100%;border-collapse:collapse;font-size:13.5px;}
+  .ref-table th{
+    text-align:left;font-family:var(--font-mono);font-size:11px;letter-spacing:.04em;
+    text-transform:uppercase;color:var(--ink-muted);padding:8px 14px 8px 0;
+    border-bottom:1px solid var(--line);white-space:nowrap;
+  }
+  .ref-table td{
+    padding:9px 14px 9px 0;border-bottom:1px solid var(--line);
+    color:var(--ink-muted);vertical-align:top;
+  }
+  .ref-table td:first-child{
+    font-family:var(--font-mono);color:var(--ink);font-weight:600;white-space:nowrap;
+  }
+  .ref-table code{
+    font-family:var(--font-mono);font-size:.92em;color:var(--ink);
+    background:var(--surface-2);padding:1px 5px;border-radius:3px;
+  }
+
+  /* ---------- Subhead + code panel ---------- */
+  .subhead{
+    font-family:var(--font-display);font-weight:600;
+    font-size:16px;margin:36px 0 4px;color:var(--ink);
+  }
+  .code-json{
+    font-family:var(--font-mono);font-size:12.5px;line-height:1.6;
+    color:var(--ink);white-space:pre;margin:0;
+  }
+
+  footer{
+    padding:32px 0 0;font-family:var(--font-mono);font-size:12px;
+    color:var(--ink-muted);
+  }
+
+  @media (max-width:640px){
+  }
+  .planner{
+    display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:1px;background:var(--line);
+    border:1px solid var(--line);margin-top:22px;
+  }
+  .planner-form{background:var(--surface);padding:6px 20px 20px;margin:0;}
+  .pgroup{border:0;padding:0;margin:18px 0 0;}
+  .pgroup legend{
+    font-family:var(--font-display);font-weight:600;font-size:13.5px;
+    color:var(--ink);padding:0;margin-bottom:9px;
+    display:flex;align-items:baseline;gap:8px;
+  }
+  .pnum{
+    font-family:var(--font-mono);font-size:10px;font-weight:500;
+    color:var(--accent);border:1px solid var(--accent);
+    border-radius:2px;padding:0 4px;line-height:1.5;
+  }
+  .pnote{font-weight:400;font-size:11.5px;color:var(--ink-muted);}
+  .pinterval-row{
+    display:flex;align-items:center;gap:9px;
+    border:1px solid var(--line);background:var(--bg);
+    padding:7px 10px;
+  }
+  .pinterval-row label{
+    font-family:var(--font-mono);font-size:12.5px;color:var(--ink);
+    min-width:5.5em;
+  }
+  .pinterval-row input[type=number]{
+    font-family:var(--font-mono);font-size:12.5px;width:6em;
+    padding:4px 6px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);
+  }
+  .pinterval-row input[type=number]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .pinterval-row .pms{
+    font-family:var(--font-mono);font-size:11px;color:var(--ink-muted);
+    font-variant-numeric:tabular-nums;
+  }
+  .pinterval-empty{color:var(--ink-muted);font-style:italic;font-size:12.5px;}
+  .popts{display:grid;gap:6px;}
+  .popts-row{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .popt{
+    display:flex;gap:9px;align-items:flex-start;
+    border:1px solid var(--line);background:var(--bg);
+    padding:8px 10px;cursor:pointer;
+  }
+  .popt:hover{border-color:var(--ink-muted);}
+  .popt input{margin:2px 0 0;accent-color:var(--accent);flex:none;}
+  .popt input:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .popt-txt{display:grid;gap:2px;min-width:0;}
+  .popt-name{font-family:var(--font-mono);font-size:12.5px;color:var(--ink);}
+  .popt-why{font-size:11.5px;color:var(--ink-muted);line-height:1.35;}
+  .popt.on{border-color:var(--accent);background:var(--accent-soft);}
+  .pcustom{display:flex;align-items:center;gap:7px;margin-top:5px;padding-left:24px;}
+  .pcustom input[type=number]{
+    font-family:var(--font-mono);font-size:12.5px;width:7em;
+    padding:4px 6px;border:1px solid var(--line);
+    background:var(--surface);color:var(--ink);
+  }
+  .pcustom input[type=number]:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+  .pcustom label{font-size:11.5px;color:var(--ink-muted);}
+  .pcustom .pms{font-family:var(--font-mono);font-size:11.5px;color:var(--accent);font-variant-numeric:tabular-nums;}
+  .pcustom[hidden]{display:none;}
+
+  .planner-out{background:var(--surface);padding:18px 20px 20px;}
+  .pout-head{
+    display:flex;justify-content:space-between;align-items:baseline;
+    gap:12px;border-bottom:1px solid var(--line);padding-bottom:9px;
+  }
+  .pout-title{
+    font-family:var(--font-display);font-weight:600;font-size:13.5px;
+    letter-spacing:.04em;text-transform:uppercase;color:var(--ink-muted);
+  }
+  .pout-reach{
+    font-family:var(--font-mono);font-size:12px;color:var(--accent);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .pblock{margin-top:16px;}
+  .pblock h4{
+    font-family:var(--font-display);font-size:12px;font-weight:600;
+    letter-spacing:.05em;text-transform:uppercase;
+    color:var(--ink-muted);margin:0 0 7px;
+  }
+  .plist{list-style:none;margin:0;padding:0;display:grid;gap:5px;}
+  .plist li{
+    font-size:12.5px;line-height:1.45;color:var(--ink);
+    padding-left:15px;position:relative;
+  }
+  .plist li::before{
+    content:"";position:absolute;left:0;top:7px;
+    width:5px;height:5px;background:var(--ink-muted);
+  }
+  .plist li.none{color:var(--ink-muted);font-style:italic;padding-left:0;}
+  .plist li.none::before{display:none;}
+  .plist li.warn{color:var(--critical);}
+  .plist li.warn::before{background:var(--critical);}
+  .plist li b{font-family:var(--font-mono);font-weight:500;font-size:12px;}
+  .plist li span{color:var(--ink-muted);}
+  .pjson{margin:0;max-height:300px;overflow:auto;font-size:11.5px;}
+
+  @media (max-width:760px){
+    .planner{grid-template-columns:minmax(0,1fr);}
+    .popts-row{grid-template-columns:minmax(0,1fr);}
+  }
+  .f3{border:1px solid var(--line);background:var(--surface);margin-top:14px;}
+
+  g.node.f3hit > rect,
+  g.node.f3hit > polygon,
+  g.node.f3hit > path{
+    stroke:var(--accent) !important;
+    stroke-width:2.5px !important;
+    fill:var(--accent-soft) !important;
+  }
+  .layers{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:1px;background:var(--line);
+    border:1px solid var(--line);margin-top:26px;
+  }
+  .layer{background:var(--surface);padding:13px 15px 15px;display:grid;gap:4px;align-content:start;}
+  .layer-tag{
+    font-family:var(--font-display);font-size:10.5px;font-weight:600;
+    letter-spacing:.07em;text-transform:uppercase;color:var(--accent);margin-bottom:3px;
+  }
+  .layer a{
+    font-family:var(--font-mono);font-size:12.5px;color:var(--ink);
+    text-decoration:none;border-bottom:1px solid transparent;width:fit-content;
+  }
+  .layer a b{color:var(--ink-muted);font-weight:500;margin-right:5px;}
+  .layer a:hover{border-bottom-color:var(--accent);}
+  .layer a:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .layer p{margin:7px 0 0;font-size:11.5px;line-height:1.45;color:var(--ink-muted);}
+  @media (max-width:820px){ .layers{grid-template-columns:repeat(2,minmax(0,1fr));} }
+  @media (max-width:460px){ .layers{grid-template-columns:minmax(0,1fr);} }
+  /* ---------- Slide 08: pick the test, then fill in what it needs ---------- */
+  .pbanner{
+    display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:1px;background:var(--line);
+    border:1px solid var(--line);margin-top:22px;
+  }
+  .pbanner label{
+    background:var(--bg);padding:12px 14px 13px;cursor:pointer;
+    display:grid;gap:5px;align-content:start;
+  }
+  .pbanner label.on{background:var(--surface);box-shadow:inset 0 2px 0 var(--accent);}
+  .pbanner input{position:absolute;opacity:0;pointer-events:none;}
+  .pbanner .bname{font-family:var(--font-mono);font-size:12.5px;color:var(--ink);}
+  .pbanner label.on .bname{color:var(--accent);}
+  .pbanner .bwhy{font-size:11.5px;line-height:1.45;color:var(--ink-muted);}
+  .pbanner label:focus-within{outline:2px solid var(--accent);outline-offset:-2px;}
+  @media (max-width:820px){ .pbanner{grid-template-columns:repeat(2,minmax(0,1fr));} }
+
+  .pchains{margin-top:1px;display:grid;gap:1px;background:var(--line);
+           border:1px solid var(--line);border-top:0;}
+  .pchain-head{
+    background:var(--surface);padding:11px 20px;
+    font-family:var(--font-mono);font-size:12px;color:var(--ink-muted);
+  }
+  .pchain-head b{color:var(--accent);font-weight:400;}
+  /* Weighted, not even: the matrix needs ~532px before it starts hiding columns, so it
+     gets the larger share and the chain drawing takes what is left. */
+  .pchains .mtool{border:0;margin:0;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);}
+  .pchains .mtool-form{padding-bottom:16px;}
+  .pchains .mmatrix-wrap{max-width:100%;overflow-x:auto;}
+  /* The widest cell that still lets all the columns show at this split; height is
+     left to the auto-fit, since bt's Idle row carries three transitions in one cell. */
+  .pchains .mmatrix textarea{width:10em;}
+  /* The drawing column is narrower here than the one Slide 01 gives it, so the 420px
+     floor that keeps the standalone tool legible would overflow and clip instead. */
+  .pchains .f4 svg{min-width:0;}
+  .pchains .mtool-out{padding:10px;}
+  .pchains .plate-frame{padding:0;}
+  .pchains .pgroup{min-width:0;}
+
+  /* ---------- The reference files these slides are the short version of ---------- */
+  .refdocs{
+    border-top:1px solid var(--line);margin-top:44px;padding-top:20px;
+    display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 28px;
+  }
+  .refdocs h3{
+    grid-column:1/-1;margin:0 0 2px;font-family:var(--font-display);
+    font-size:11px;font-weight:600;letter-spacing:.07em;text-transform:uppercase;
+    color:var(--accent);
+  }
+  .refdocs p{margin:0;font-size:12px;line-height:1.5;color:var(--ink-muted);}
+  .refdocs code{font-family:var(--font-mono);font-size:11.5px;color:var(--ink);}
+  @media (max-width:700px){ .refdocs{grid-template-columns:minmax(0,1fr);} }
+
+  /* ---------- Standalone reset (was supplied by the Artifact host) ---------- */
+  body{margin:0;font-size:14px;}
+  img{max-width:100%;}
+  [hidden]{display:none !important;}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="nav-mark">POD-MBT / REV.A</span>
+    <div class="nav-links">
+      <a href="#why">Why MBT</a>
+      <a href="#example">Test Case</a>
+      <a href="#architecture">Architecture</a>
+      <a href="#data">Data Structure</a>
+      <a href="#flow">Runtime</a>
+      <a href="#output">Output</a>
+      <a href="#actionled">Action-Led</a>
+      <a href="#fuzz">Pure Fuzz</a>
+      <a href="#planner">Planner</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <h1>Model-Based Testing, with AI assistance<br><span style="font-weight:600;font-size:.52em;letter-spacing:0;">Stochastic exploration with chaos-style fault injection &mdash; Smart Home Pod connectivity as the worked example</span></h1>
+
+    <div class="layers">
+      <div class="layer">
+        <span class="layer-tag">The design</span>
+        <a href="#why"><b>00</b> Why Model-Based Testing</a>
+        <a href="#example"><b>01</b> MBT Test Case</a>
+        <a href="#architecture"><b>02</b> Architecture Overview</a>
+        <a href="#data"><b>03</b> Data Structure</a>
+        <p>What the pieces are and how they refer to each other, and what an AI may touch. The full Action Database and transition tables live in <code>docs/data_structure.md</code>.</p>
+      </div>
+      <div class="layer">
+        <span class="layer-tag">The loop</span>
+        <a href="#flow"><b>04</b> Runtime Flow</a>
+        <p>One worker, one lap: select, guard, execute, verify, log. Everything else in this Blueprint is a configuration of this one diagram.</p>
+      </div>
+      <div class="layer">
+        <span class="layer-tag">The output</span>
+        <a href="#output"><b>05</b> What AI Does Here</a>
+        <p>What's in the folder a run produces, and how the two computed files — ErrorSignature and CoverageReport — get their numbers.</p>
+      </div>
+      <div class="layer">
+        <span class="layer-tag">Using it</span>
+        <a href="#actionled"><b>06</b> Action-Led Test</a>
+        <a href="#fuzz"><b>07</b> Pure Fuzz Test</a>
+        <a href="#planner"><b>08</b> Run Planner</a>
+        <p>What an action-led run reaches that a state-led one cannot, what is left when the judging is ignored entirely, and an interactive planner that derives the files and hardware from your choices.</p>
+      </div>
+    </div>
+
+  </header>
+
+  <section id="why">
+    <p class="section-eyebrow">Slide 00</p>
+    <h2>Why Model-Based Testing?</h2>
+
+    <p class="subhead">Where regression testing stops</p>
+    <ul class="notes">
+      <li><b>Written step by step, in that order.</b> The library first, then a case against it for each thing worth checking, then the automation — which lands after the feature has shipped.</li>
+      <li><b>Every case asserts something a person already suspected.</b> So the suite grows with author time and covers what somebody thought of; what nobody thought of stays uncovered, release after release.</li>
+    </ul>
+
+
+    <p class="subhead">What model-based testing is</p>
+    <ul class="notes">
+      <li><b>You write down the device, not the cases.</b> Its states, the actions that move between them, and what must be true before each call and after it.</li>
+      <li><b>The runs are generated from that model.</b> Cases become an output rather than an input — adding a test means adding to the model, and every run afterwards can use it.</li>
+    </ul>
+
+
+    <p class="subhead">What a Markov chain is</p>
+    <p class="claim">A Markov chain is a mathematical system that shifts from one state to another based on fixed probabilities, where the next state depends only on the current state and not on the past. <sup><a href="https://brilliant.org/wiki/markov-chains/">[1]</a></sup></p>
+
+    <p class="subhead" style="margin-top:22px;font-size:13px;">How It Works</p>
+    <ul class="notes">
+      <li><b>States:</b> The distinct conditions or situations a system can be in (like sunny or rainy weather).</li>
+      <li><b>Transitions:</b> The movement from one state to another.</li>
+      <li><b>Markov Property:</b> The rule that the future depends entirely on the present moment, making the process "memoryless".</li>
+      <li><b>Transition Matrix:</b> A square table showing the mathematical odds of moving from any specific current state to any other future state. <sup><a href="https://www.sciencedirect.com/topics/agricultural-and-biological-sciences/markov-chain">[1]</a></sup> <sup><a href="https://www.youtube.com/watch?v=rYSVFScr7qw">[2]</a></sup> <sup><a href="https://www.youtube.com/watch?v=mLiGy8KND0E">[3]</a></sup> <sup><a href="https://setosa.io/ev/markov-chains/">[4]</a></sup></li>
+    </ul>
+
+    <figure class="plate">
+      <div class="plate-frame">
+<div class="f0">
+<svg viewBox="0 0 900 290" role="img" aria-label="Two Wi-Fi states, three transitions, and a fault clock firing into the walk">
+  <defs>
+    <marker id="a0" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#8b96a5"/></marker>
+    <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#f0a446"/></marker>
+  </defs>
+
+  <circle class="n" cx="300" cy="140" r="64"/><text class="nl" x="300" y="145">Disconnected</text>
+  <circle class="n" cx="640" cy="140" r="64"/><text class="nl" x="640" y="145">Connected</text>
+
+  <path class="e" d="M355,106 Q470,48 585,106"/>
+  <text class="al" x="470" y="48">connect_wifi</text><text class="pl" x="470" y="64">0.70</text>
+
+  <path class="e" d="M585,174 Q470,232 355,174"/>
+  <text class="pl" x="470" y="222">1.00</text><text class="al" x="470" y="238">disconnect_wifi</text>
+
+  <path class="e" d="M252,104 A30,30 0 1,1 308,72"/>
+  <text class="al" x="168" y="56">wrong_psk</text><text class="pl" x="168" y="72">0.30</text>
+
+  <rect class="box" x="40" y="244" width="196" height="32"/>
+  <text class="cap" x="54" y="265" style="fill:var(--accent)">FAULT INJECT — no state</text>
+  <path class="ef" d="M244,260 L470,260 L470,204"/>
+  <text class="cap" x="492" y="265">fires mid-call, at an instant nobody chose</text>
+</svg>
+</div>
+      </div>
+      <figcaption><b>The whole mechanism, at its smallest.</b> Two Wi-Fi states and the transitions between them. Each carries the action that causes it and how often a person does it; every state sums to 1, so raising one visibly lowers the others — here, a mistyped password keeps you where you are 30% of the time. The real chains are bigger — Wi-Fi has three states, Bluetooth five — but nothing else about the mechanism changes.</figcaption>
+    </figure>
+
+    <p class="subhead">Traditional Regression vs AI-Driven MBT</p>
+
+    <div class="table-scroll">
+      <table class="ref-table compare three">
+        <thead><tr><th>Dimension</th><th>Scripted regression</th><th>AI-Driven MBT</th></tr></thead>
+        <tbody>
+          <tr><td>Execution path</td><td><b>Reset.</b> Case 1, then case 2, each from a clean baseline — so the accumulated state that causes a field bug is destroyed on purpose, before every case.</td><td><b>Accumulation.</b> One walk that keeps going and carries its own history; a device that has recovered from failure fifty times is the ordinary condition.</td></tr>
+          <tr><td>Fault timing</td><td><b>Static.</b> Injected at a step somebody chose — usually a step the code already expects it at.</td><td><b>Mid-flight.</b> An independent clock cuts in while a call is still in progress.</td></tr>
+          <tr><td>Who writes it</td><td><b>Every case.</b> Coverage grows with author time, and the automation arrives after the feature ships.</td><td><b>The model, once.</b> Runs are generated from it, so coverage grows with machine time — and it can start the day the API library exists.</td></tr>
+          <tr><td>When it fails</td><td>The case is the reproduction.</td><td><b>The run is recorded as a schedule</b> — worker, action, offset — so a random finding comes back replayable. Random testing without that record is what gives random testing its bad name.</td></tr>
+          <tr><td>What it proves</td><td><b>The known.</b> The bug we fixed last release is still fixed.</td><td><b>The unknown.</b> The design flaw nobody thought to write a case for.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="notes">
+      <li><b>Two ways to walk the same model.</b> <b>State-led</b> follows the chain — realistic paths, which is what a fault needs to be perturbing something worth perturbing. <b>Action-led</b> ignores the chain and fires at whatever state it finds, which is the only way to reach the calls the model says should never happen.</li>
+      <li><b>And the AI never rolls the dice.</b> It turns an engineer's intent into the plan — which components walk, how long, which faults fire when — then reads the finished run. During the run there is none: dice, guards, oracle and coverage are ordinary Python, reproducible from a seed.</li>
+      <li><b>Nothing here replaces the existing suite.</b> The scripted paths keep running exactly as they do now, on the same bench.</li>
+    </ul>
+  </section>
+
+  <section id="example">
+    <p class="section-eyebrow">Slide 01</p>
+    <h2>MBT Test Case</h2>
+
+    <figure class="plate">
+      <div class="plate-frame">
+<div class="f1">
+<svg viewBox="-55 15 1115 1160" role="img" aria-label="Four circles in a 2x2 grid: wifi and bt on top, matter and fault injection below"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#8b96a5"/></marker></defs><text class="lane" x="205" y="77" text-anchor="middle">WIFI</text>
+<path class="edge" d="M210,190 Q227,267 285,320"/>
+<text class="act" x="264" y="239">connect_wifi</text><text class="p" x="264" y="251">0.70</text>
+<path class="edge" d="M217,139 Q205,89 193,139"/>
+<text class="act" x="211" y="87">wrong_psk (refused)</text><text class="p" x="211" y="99">0.30</text>
+<path class="edge" d="M280,330 Q205,306 130,330"/>
+<text class="act" x="187" y="352">streaming_uplink</text><text class="p" x="187" y="364">0.70</text>
+<path class="edge" d="M299,312 Q283,235 224,182"/>
+<text class="act" x="286" y="213">disconnect_wifi</text><text class="p" x="286" y="225">0.30</text>
+<path class="edge" d="M125,320 Q183,267 200,190"/>
+<text class="act" x="140" y="249">disconnect_wifi</text><text class="p" x="140" y="261">0.40</text>
+<path class="edge" d="M77,340 Q40,376 89,361"/>
+<text class="act" x="35" y="371">streaming_downlink</text><text class="p" x="35" y="383">0.60</text>
+<circle class="node" cx="205" cy="165" r="26"/><text class="nlabel" x="205" y="169" style="font-size:10px">Disconnected</text>
+<circle class="node" cx="305" cy="338" r="26"/><text class="nlabel" x="305" y="342" style="font-size:10px">Connected</text>
+<circle class="node" cx="105" cy="338" r="26"/><text class="nlabel" x="105" y="342" style="font-size:10px">Streaming</text><text class="lane" x="715" y="42" text-anchor="middle">BT</text>
+<path class="edge" d="M730,152 Q768,208 833,226"/>
+<text class="act" x="790" y="167">bt_pairing</text><text class="p" x="790" y="179">0.80</text>
+<path class="edge" d="M727,104 Q715,54 703,104"/>
+<text class="act" x="721" y="52">no_peer (refused)</text><text class="p" x="721" y="64">0.20</text>
+<path class="edge" d="M842,254 Q800,308 802,375"/>
+<text class="act" x="838" y="339">bt_connect</text><text class="p" x="838" y="351">0.70</text>
+<path class="edge" d="M886,237 Q930,210 879,214"/>
+<text class="act" x="926" y="192">wrong_device_name (refused)</text><text class="p" x="926" y="204">0.30</text>
+<path class="edge" d="M786,382 Q707,292 596,244"/>
+<text class="act" x="684" y="332">bt_audio_streaming</text><text class="p" x="684" y="344">0.50</text>
+<path class="edge" d="M779,392 Q715,369 651,392"/>
+<text class="act" x="709" y="415">bt_disconnect</text><text class="p" x="709" y="427">0.30</text>
+<path class="edge" d="M801,375 Q790,256 728,152"/>
+<text class="act" x="808" y="269">bt_unpair</text><text class="p" x="808" y="281">0.20</text>
+<path class="edge" d="M651,410 Q715,433 779,410"/>
+<text class="act" x="733" y="447">bt_connect</text><text class="p" x="733" y="459">0.60</text>
+<path class="edge" d="M640,379 Q701,276 713,156"/>
+<text class="act" x="656" y="267">bt_unpair</text><text class="p" x="656" y="279">0.40</text>
+<path class="edge" d="M571,260 Q569,327 611,381"/>
+<text class="act" x="554" y="326">bt_disconnect</text><text class="p" x="554" y="338">0.70</text>
+<path class="edge" d="M551,214 Q500,210 544,237"/>
+<text class="act" x="504" y="192">restart streaming</text><text class="p" x="504" y="204">0.30</text>
+<circle class="node" cx="715" cy="130" r="26"/><text class="nlabel" x="715" y="134" style="font-size:10px">Unpaired</text>
+<circle class="node" cx="858" cy="234" r="26"/><text class="nlabel" x="858" y="238" style="font-size:10px">Pairing</text>
+<circle class="node" cx="803" cy="401" r="26"/><text class="nlabel" x="803" y="405" style="font-size:10px">Connected</text>
+<circle class="node" cx="627" cy="401" r="26"/><text class="nlabel" x="627" y="405" style="font-size:10px">Disconnected</text>
+<circle class="node" cx="572" cy="234" r="26"/><text class="nlabel" x="572" y="238" style="font-size:10px">Streaming</text><text class="lane" x="205" y="587" text-anchor="middle">MATTER</text>
+<path class="edge" d="M211,700 Q231,785 294,845"/>
+<text class="act" x="268" y="757">start_matter</text><text class="p" x="268" y="769">0.70</text>
+<path class="edge" d="M217,649 Q205,599 193,649"/>
+<text class="act" x="211" y="597">wrong_setup_code (refused)</text><text class="p" x="211" y="609">0.30</text>
+<path class="edge" d="M288,855 Q205,830 122,855"/>
+<text class="act" x="187" y="876">complete_commissioning</text><text class="p" x="187" y="888">1.00</text>
+<path class="edge" d="M116,845 Q179,785 199,700"/>
+<text class="act" x="130" y="777">remove_fabric</text><text class="p" x="130" y="789">0.50</text>
+<path class="edge" d="M68,865 Q31,900 80,886"/>
+<text class="act" x="32" y="907">start_matter (refused)</text><text class="p" x="32" y="919">0.50</text>
+<circle class="node" cx="205" cy="675" r="26"/><text class="nlabel" x="205" y="679" style="font-size:10px">Uncommissioned</text>
+<circle class="node" cx="313" cy="862" r="26"/><text class="nlabel" x="313" y="866" style="font-size:10px">Commissioning</text>
+<circle class="node" cx="97" cy="862" r="26"/><text class="nlabel" x="97" y="866" style="font-size:10px">Commissioned</text><text class="lane" x="715" y="550" text-anchor="middle" style="fill:var(--accent,#f0a446)">FAULT INJECT — fires on the DUT</text>
+<circle class="dut" cx="715" cy="800" r="24"/><text class="dutlabel" x="715" y="804" style="font-size:10px">DUT</text>
+<line class="faultspoke" x1="715" y1="776" x2="715" y2="628"/>
+<circle class="faultnode" cx="715" cy="628" r="3.5"/>
+<text class="factring" x="715" y="594" text-anchor="middle" style="font-size:8.5px">inject_wifi_drop</text>
+<line class="faultspoke" x1="726" y1="779" x2="795" y2="648"/>
+<circle class="faultnode" cx="795" cy="648" r="3.5"/>
+<text class="factring" x="826" y="589" text-anchor="start" style="font-size:8.5px">inject_router_reboot</text>
+<line class="faultspoke" x1="735" y1="786" x2="857" y2="702"/>
+<circle class="faultnode" cx="857" cy="702" r="3.5"/>
+<text class="factring" x="885" y="683" text-anchor="start" style="font-size:8.5px">inject_internet_down</text>
+<line class="faultspoke" x1="739" y1="797" x2="886" y2="779"/>
+<circle class="faultnode" cx="886" cy="779" r="3.5"/>
+<text class="factring" x="951" y="771" text-anchor="start" style="font-size:8.5px">inject_dhcp_timeout</text>
+<line class="faultspoke" x1="737" y1="809" x2="876" y2="861"/>
+<circle class="faultnode" cx="876" cy="861" r="3.5"/>
+<text class="factring" x="908" y="873" text-anchor="start" style="font-size:8.5px">inject_ap_ssid_changed</text>
+<line class="faultspoke" x1="731" y1="818" x2="829" y2="929"/>
+<circle class="faultnode" cx="829" cy="929" r="3.5"/>
+<text class="factring" x="873" y="978" text-anchor="start" style="font-size:8.5px">inject_phone_disconnected</text>
+<line class="faultspoke" x1="721" y1="823" x2="756" y2="967"/>
+<circle class="faultnode" cx="756" cy="967" r="3.5"/>
+<text class="factring" x="764" y="1000" text-anchor="middle" style="font-size:8.5px">inject_phone_out_of_range</text>
+<line class="faultspoke" x1="709" y1="823" x2="674" y2="967"/>
+<circle class="faultnode" cx="674" cy="967" r="3.5"/>
+<text class="factring" x="658" y="1031" text-anchor="middle" style="font-size:8.5px">inject_phone_reboot</text>
+<line class="faultspoke" x1="699" y1="818" x2="601" y2="929"/>
+<circle class="faultnode" cx="601" cy="929" r="3.5"/>
+<text class="factring" x="578" y="954" text-anchor="end" style="font-size:8.5px">inject_matter_controller_reject</text>
+<line class="faultspoke" x1="693" y1="809" x2="554" y2="861"/>
+<circle class="faultnode" cx="554" cy="861" r="3.5"/>
+<text class="factring" x="492" y="884" text-anchor="end" style="font-size:8.5px">inject_cpu_stress</text>
+<line class="faultspoke" x1="691" y1="797" x2="544" y2="779"/>
+<circle class="faultnode" cx="544" cy="779" r="3.5"/>
+<text class="factring" x="511" y="775" text-anchor="end" style="font-size:8.5px">inject_memory_stress</text>
+<line class="faultspoke" x1="695" y1="786" x2="573" y2="702"/>
+<circle class="faultnode" cx="573" cy="702" r="3.5"/>
+<text class="factring" x="519" y="665" text-anchor="end" style="font-size:8.5px">clear_system_stress</text>
+<line class="faultspoke" x1="704" y1="779" x2="635" y2="648"/>
+<circle class="faultnode" cx="635" cy="648" r="3.5"/>
+<text class="factring" x="619" y="618" text-anchor="end" style="font-size:8.5px">inject_power_reboot</text></svg>
+</div>
+      </div>
+      <figcaption><b>TC-01 (test case 01).</b> wifi, bt and matter are Markov chain models — states, and the probability of each transition. <code>FAULT INJECT</code> is not: it has no states or transitions of its own, so every fault action radiates from the DUT itself, with no arrow singling out one chain. A fault lands on the device as a whole — whether <code>inject_router_reboot</code> also disturbs <code>bt</code> or <code>matter</code> is exactly the kind of cross-component question this framework surfaces rather than assumes.</figcaption>
+    </figure>
+
+    <p class="subhead">What running it looks like</p>
+    <figure class="plate">
+      <div class="plate-frame">
+<div class="f2">
+<svg viewBox="0 0 1000 430" role="img" aria-label="Timeline: wifi, bt and matter each run their own transitions on a shared clock while fault inject fires at random offsets">
+<text class="lane2" x="20" y="96">WIFI</text>
+<line class="lanebase" x1="130" y1="114" x2="930" y2="114"/>
+<text class="lane2" x="20" y="176">BT</text>
+<line class="lanebase" x1="130" y1="194" x2="930" y2="194"/>
+<text class="lane2" x="20" y="256">MATTER</text>
+<line class="lanebase" x1="130" y1="274" x2="930" y2="274"/>
+<text class="lane2" x="20" y="356">FAULT INJECT</text>
+<line class="lanebase" x1="130" y1="374" x2="930" y2="374"/>
+<line class="guide" x1="130" y1="64" x2="130" y2="380"/>
+<text class="tick" x="130" y="408">t+00:00</text>
+<line class="guide" x1="183" y1="64" x2="183" y2="380"/>
+<text class="tick" x="183" y="408">t+00:02</text>
+<line class="guide" x1="263" y1="64" x2="263" y2="380"/>
+<text class="tick" x="263" y="408">t+00:05</text>
+<line class="guide" x1="370" y1="64" x2="370" y2="380"/>
+<text class="tick" x="370" y="408">t+00:09</text>
+<line class="guide" x1="450" y1="64" x2="450" y2="380"/>
+<text class="tick" x="450" y="408">t+00:12</text>
+<line class="guide" x1="503" y1="64" x2="503" y2="380"/>
+<text class="tick" x="503" y="408">t+00:14</text>
+<line class="guide" x1="663" y1="64" x2="663" y2="380"/>
+<text class="tick" x="663" y="408">t+00:20</text>
+<line class="guide" x1="850" y1="64" x2="850" y2="380"/>
+<text class="tick" x="850" y="408">t+00:27</text>
+<line class="axis" x1="130" y1="392" x2="930" y2="392"/>
+<rect class="bar" x="130" y="70" width="240" height="44" rx="6"/>
+<text class="barlabel" x="250" y="96">Connected</text>
+<rect class="bar" x="370" y="70" width="560" height="44" rx="6"/>
+<text class="barlabel" x="650" y="96">Streaming</text>
+<rect class="bar dim" x="130" y="150" width="53" height="44" rx="6"/>
+<text class="barlabel" x="157" y="176">Unpaired</text>
+<rect class="bar" x="183" y="150" width="320" height="44" rx="6"/>
+<text class="barlabel" x="343" y="176">Pairing</text>
+<rect class="bar" x="503" y="150" width="347" height="44" rx="6"/>
+<text class="barlabel" x="677" y="176">Streaming</text>
+<rect class="bar" x="850" y="150" width="80" height="44" rx="6"/>
+<text class="barlabel" x="890" y="176">Disconnected</text>
+<rect class="bar dim" x="130" y="230" width="133" height="44" rx="6"/>
+<text class="barlabel" x="197" y="256">Uncommissioned</text>
+<rect class="bar" x="263" y="230" width="400" height="44" rx="6"/>
+<text class="barlabel" x="463" y="256">Commissioning</text>
+<rect class="bar" x="663" y="230" width="267" height="44" rx="6"/>
+<text class="barlabel" x="797" y="256">Commissioned</text>
+<line class="tmark" x1="130" y1="66" x2="130" y2="118"/>
+<circle class="tdot" cx="130" cy="70" r="3.5"/>
+<text class="actlabel" x="130" y="60">connect_wifi</text>
+<line class="tmark" x1="183" y1="146" x2="183" y2="198"/>
+<circle class="tdot" cx="183" cy="150" r="3.5"/>
+<text class="actlabel" x="183" y="140">bt_pairing</text>
+<line class="tmark" x1="263" y1="226" x2="263" y2="278"/>
+<circle class="tdot" cx="263" cy="230" r="3.5"/>
+<text class="actlabel" x="263" y="220">start_matter</text>
+<line class="tmark" x1="370" y1="66" x2="370" y2="118"/>
+<circle class="tdot" cx="370" cy="70" r="3.5"/>
+<text class="actlabel" x="370" y="60">streaming_uplink</text>
+<line class="tmark" x1="503" y1="146" x2="503" y2="198"/>
+<circle class="tdot" cx="503" cy="150" r="3.5"/>
+<text class="actlabel" x="503" y="140">bt_audio_streaming</text>
+<line class="tmark" x1="663" y1="226" x2="663" y2="278"/>
+<circle class="tdot" cx="663" cy="230" r="3.5"/>
+<text class="actlabel" x="663" y="220">complete_matter_commissioning</text>
+<line class="tmark" x1="850" y1="146" x2="850" y2="198"/>
+<circle class="tdot" cx="850" cy="150" r="3.5"/>
+<text class="actlabel" x="850" y="140">(postcondition OK)</text>
+<circle class="reftick" cx="450" cy="103" r="3"/>
+<text class="refused" x="450" y="98">✕ streaming_downlink — refused</text>
+<circle class="faultdot" cx="450" cy="352" r="6"/>
+<text class="faultlabel" x="450" y="336">inject_router_reboot</text>
+<text class="faultlabel2" x="450" y="376">→ wifi, mid-flight</text>
+<circle class="faultdot" cx="850" cy="352" r="6"/>
+<text class="faultlabel" x="850" y="336">inject_phone_out_of_range</text>
+<text class="faultlabel2" x="850" y="376">→ bt, mid-flight</text>
+</svg>
+</div>
+      </div>
+      <figcaption><b>TC-01, drawn as a timeline.</b> wifi, bt and matter each run their own transitions on the shared clock below — nobody scripted this order, it is what the seed in this one run produced. <code>FAULT INJECT</code> has no lane of its own state to sit in, so it is drawn as a clock, not a chain: <code>inject_router_reboot</code> and <code>inject_phone_out_of_range</code> are the two instants this run happened to fire one, and the log beneath names exactly which call each one caught mid-flight.</figcaption>
+    </figure>
+    <div class="table-scroll">
+      <pre class="code-json">t+00:00  wifi    connect_wifi                   Disconnected -&gt; Connected
+t+00:02  bt      bt_pairing                     Unpaired -&gt; Pairing
+t+00:05  matter  start_matter                   Uncommissioned -&gt; Commissioning   (guard: wifi=Connected OK)
+t+00:09  wifi    streaming_uplink               Connected -&gt; Streaming
+t+00:12  FAULT   inject_router_reboot           -&gt; wifi, mid-flight
+t+00:12  wifi    streaming_downlink             refused -- no lease (the fault landed first)
+t+00:14  bt      bt_audio_streaming             Connected -&gt; Streaming
+t+00:20  matter  complete_matter_commissioning  Commissioning -&gt; Commissioned
+t+00:27  FAULT   inject_phone_out_of_range      -&gt; bt, mid-flight
+t+00:27  bt      Streaming -&gt; Disconnected      (postcondition: link drops within 15s OK)</pre>
+    </div>
+    <ul class="notes">
+      <li><b>One fault, two consequences.</b> <code>inject_router_reboot</code> lands while wifi is mid-stream, and the very next wifi call is refused for a reason that only makes sense given the line above it — a reset-per-case suite can never produce that sequence.</li>
+      <li><b>Three components, one shared clock.</b> Nothing here is scripted in advance. This is one seed, replayed — it produces exactly this sequence every time.</li>
+    </ul>
+
+    <p class="subhead">Build a test case from a matrix</p>
+    <p class="claim">One matrix carries everything a chain needs — <code>M[i][j]</code> is the probability of the transition from state <code>i</code> to state <code>j</code>, and the action that causes it rides in the same cell. States plus this one matrix is all a TE has to give; the page draws it exactly the way TC-01's four chains are drawn above. Leave a cell <code>0</code> and no edge is drawn.</p>
+
+    <div class="mtool">
+      <div class="mtool-form">
+        <fieldset class="pgroup">
+          <legend><span class="pnum">1</span> States</legend>
+          <input type="text" class="mstates" value="S0, S1, S2, S3" spellcheck="false">
+        </fieldset>
+        <fieldset class="pgroup">
+          <legend><span class="pnum">2</span> Matrix — each cell is <code>0</code>, or <code>p (action)</code></legend>
+          <div class="mmatrix-wrap"><table class="mmatrix"></table></div>
+        </fieldset>
+        <ul class="plist mwarnout"></ul>
+      </div>
+      <div class="mtool-out">
+        <div class="plate-frame"><div class="f4 mdrawing"></div></div>
+      </div>
+    </div>
+    <ul class="notes">
+      <li><b>The matrix is the source of truth here, not the chain.</b> <code>MarkovPolicy.matrix()</code> (Slide 03) goes the other way — it derives a matrix from a chain someone already wrote in code, for the maths and for validation. This tool runs that arrow backwards: type the matrix first, get the chain drawn from it.</li>
+      <li><b>A row that does not sum to 1 is flagged, not silently normalized.</b> <code>validate_chains</code> treats that the same way — a probability row is either right or it is a bug, never something to be quietly rescaled.</li>
+    </ul>
+  </section>
+  <section id="architecture">
+    <p class="section-eyebrow">Slide 02</p>
+    <h2>Architecture Overview</h2>
+    <p class="claim">Configuration feeds the engine loop, the engine loop drives the device, and everything a run produces lands in one folder. The AI never sits inside that loop: it reads the folder once the run has stopped, and what it writes back — the report, and the plan for the next run — is <strong>what makes the next run different from this one</strong>.</p>
+
+    <figure class="plate">
+      <div class="plate-frame">
+        <pre class="mermaid">
+flowchart LR
+    subgraph Config["Configuration"]
+        AD[ActionDatabase]
+        MP[MarkovPolicy]
+        SCH["ActionSchedule<br/>(test case · repro · AI plan)"]
+    end
+
+    subgraph Engine["Test Engine"]
+        EL[Engine Loop]
+        BM[Background Monitor]
+    end
+
+    DUT[["&nbsp;&nbsp;&nbsp;DUT&nbsp;&nbsp;&nbsp;"]]
+
+    subgraph Runtime["Runtime State"]
+        CS[CompositeState]
+        CT[CoverageTracker]
+        ES[ErrorSignature]
+    end
+
+    REC[Run Log]
+    ANA[Results]
+    AIB[AI]
+    RPT[Report]
+
+    AD --> EL
+    MP --> EL
+    SCH -.-> EL
+    EL ==> DUT
+    DUT ==> CS
+    CS --> CT
+    EL --> ES
+    EL --> REC
+    BM --> REC
+    CT --> ANA
+    ES --> ANA
+    REC -.-> AIB
+    ANA --> AIB
+    AIB --> RPT
+    AIB -.-> PLAN["Next run plan"]
+
+    style DUT font-size:20px,font-weight:700,stroke-width:2px
+        </pre>
+      </div>
+      <figcaption><b>Fig. 1</b> — components, not files. The thick pair is the only contact with hardware: actions out — including the ones the model calls illegal, issued on purpose — and observed state back. The <b>AI</b> runs after the stop and never during: it reads the <b>Run Log</b> and the <b>Results</b>, and writes the <b>Report</b> plus the plan for the next run.</figcaption>
+    </figure>
+
+    <ul class="notes">
+      <li><b>One class, however many workers.</b> <code>EngineLoop</code> is instantiated once per worker, not once per component — a <code>walk</code> or <code>probe</code> instance is paced by <code>avgIntervalMs</code> and scoped to one <code>component</code>; a <code>schedule</code> instance reads neither, it just steps through its own list on the clock. What differs between instances is only which kind they are.</li>
+      <li><b>Concurrent workers rarely contend.</b> <code>dut</code> workers talk to the Pod; <code>equipment</code> workers talk to the plug, the AP, the attenuator. Only the shared state — <code>CompositeState</code>, <code>CoverageTracker</code> — needs a lock.</li>
+      <li><b>The AI is outside the loop by choice.</b> An LLM picking the next action still picks from the 32 the model already has; reading a finished run, it can say which action is <em>missing</em>. That is why no mode has AI in it.</li>
+      <li><b>What the AI may write, it writes without asking.</b> An <code>ActionSchedule</code> and the next run plan only ever name actions that already exist. <code>ActionDatabase</code> and <code>MarkovPolicy</code> define what an action means, so they change only through a reviewed proposal — see the proposal flow in <code>docs/data_structure.md</code> for both paths.</li>
+      <li><b>The counting is Python, never the model.</b> <code>CoverageTracker</code> does set arithmetic, and separates <em>issued</em> from <em>accepted</em>: an action the device refused every time lands in <code>refused_actions</code>, not in the covered count.</li>
+      <li><b>Swap the driver, not the graph.</b> The same diagram runs against the simulator or a physical bench; nothing above the device boundary changes.</li>
+    </ul>
+  </section>
+
+  <section id="data">
+    <p class="section-eyebrow">Slide 03</p>
+    <h2>Data Structure</h2>
+    <p class="subhead">From a TE's matrix to a running call</p>
+    <p class="claim">A TE only ever writes two things by hand: a matrix — which states, which action moves where, at what probability — and a short list of when a fault should fire. Everything else a call actually needs is looked up by name, out of one shared <code>ActionDatabase</code>, at the moment it's used. TC-01's wifi walk (Slide 01) shows the whole path, end to end.</p>
+
+    <p><b>TE input MakovChain Matrix Table</b></p>
+    <div class="table-scroll">
+      <pre class="code-json">states: [Disconnected, Connected, Streaming]
+matrix:
+  [ "0.3 (api_wrong_psk)",       "0.7 (api_connect_wifi)",      "0"                              ]
+  [ "0.3 (api_disconnect_wifi)", "0",                           "0.7 (api_streaming_uplink)"     ]
+  [ "0.4 (api_disconnect_wifi)", "0",                           "0.6 (api_streaming_downlink)"   ]</pre>
+    </div>
+
+    <p class="claim">That matrix is nothing but <code>MarkovPolicy.chains["wifi"]</code> unfolded — each row becomes a state key, each non-zero cell becomes one <code>Transition(action, next, p)</code>:</p>
+
+    <div class="table-scroll">
+      <pre class="code-json">{
+  "Disconnected": [{"action": "api_wrong_psk",       "next": "Disconnected", "p": 0.3},
+                   {"action": "api_connect_wifi",    "next": "Connected",    "p": 0.7}],
+  "Connected":    [{"action": "api_disconnect_wifi", "next": "Disconnected", "p": 0.3},
+                   {"action": "api_streaming_uplink","next": "Streaming",    "p": 0.7}],
+  "Streaming":    [{"action": "api_disconnect_wifi", "next": "Disconnected", "p": 0.4},
+                   {"action": "api_streaming_downlink","next": "Streaming",  "p": 0.6}]
+}</pre>
+    </div>
+
+    <p class="claim">Say the wifi-worker's roll lands on <code>api_connect_wifi</code>. The chain only ever names it — it has no idea what the call checks or does. <code>EngineLoop</code> looks the name up once, into <code>ACTION_DB</code>:</p>
+
+    <p><b>Action Definition</b></p>
+    <div class="table-scroll">
+      <pre class="code-json">ACTION_DB.get("api_connect_wifi")
+
+ActionDefinition(
+    name="api_connect_wifi",
+    category=Category.API,               # api, not fault_injection
+    executor=Executor.DUT,                # the Pod's own API, no bench hardware
+    component="wifi",
+
+    guard_text="wifi = Disconnected",
+    guard=lambda s: s.wifi is Wifi.DISCONNECTED,
+
+    postcondition_text="wifi = Connected within 30s",
+    postcondition=lambda s: s.wifi is Wifi.CONNECTED,
+
+    effect=_connected_wifi,                # below
+
+    postcondition_timeout_ms=30_000,       # unset would default to 10_000
+    cleanup_action=None,                   # unset — this action needs no cleanup
+)</pre>
+    </div>
+
+    <p class="claim">A fault takes the same last step from a completely different first one. TE gives it one action name and one time; <code>EngineLoop</code> hits the exact same <code>ACTION_DB.get(name)</code> lookup to find out what it does:</p>
+
+    <p><b>ActionSchedule Info</b></p>
+    <div class="table-scroll">
+      <pre class="code-json">{"workerId": "fault-clock", "actionName": "inject_router_reboot", "scheduledOffsetMs": 12000}</pre>
+    </div>
+
+    <p class="claim">Three config files, one <code>ACTION_DB.get(name)</code> each: <code>MarkovPolicy</code> names an action for a chain roll, <code>ActionSchedule</code> names one for a clock tick — different deciders, same lookup, and that's everything <code>EngineLoop</code> needs to run either one.</p>
+
+  </section>
+
+  <section id="flow">
+    <p class="section-eyebrow">Slide 04</p>
+    <h2>Runtime Flow</h2>
+    <p class="claim">Every worker — walk, probe, or schedule — shares one clock, and so does a fourth queue member that isn't a worker at all: the <code>BackgroundMonitor</code>. <code>Session.run()</code> pops whichever one is due next, lets it take exactly one turn, and pushes it back into the queue at whatever time it says it's due again. This is the whole loop:</p>
+
+    <figure class="plate">
+      <div class="plate-frame">
+        <pre class="mermaid">
+flowchart TD
+    Pop["Pop the earliest thing off the queue"] --> TimeCheck{"now ≥ durationMs?"}
+    TimeCheck -->|Yes| End(["Session ends"])
+    TimeCheck -->|No| Kind{"Worker, or the BackgroundMonitor?"}
+
+    Kind -->|monitor| Sample["Sample CompositeState, log telemetry — next time = now + fixed interval"]
+    Kind -->|worker| Select["Select its action — looks up ACTION_DB.get(name)"]
+    Select --> Guard["Check the guard first"]
+    Guard --> Exec["Execute the call, for real"]
+    Exec --> Judge["Judge the result — guard vs. what actually happened"]
+    Judge --> UpdateState["Update CompositeState"]
+    UpdateState --> Log["Write the log"]
+    Log --> Coverage["Record coverage"]
+    Coverage --> NextTime["This worker computes its own next time"]
+
+    Sample --> StopCheck{"power = Power_Off, or crashed?"}
+    NextTime --> StopCheck
+    StopCheck -->|Yes| End
+    StopCheck -->|No| Requeue["Push it back into the queue"]
+    Requeue -->|next earliest — maybe a different worker| Pop
+        </pre>
+      </div>
+      <figcaption><b>Fig. 2</b> — one pop, one turn, one push back. Nothing here is "this worker's own loop": it's one shared cycle, and which worker it serves next is decided fresh every time it comes back around to <code>Pop</code>. Two ways the whole session ends: the clock runs out, or the device stops looking healthy.</figcaption>
+    </figure>
+
+    <ul class="notes">
+      <li><b>The monitor is not a worker wearing a disguise.</b> It sits in the exact same queue and gets popped the exact same way, but its turn is nothing like a worker's — no <code>ACTION_DB</code> lookup, no guard, no action at all. It just reads the current state, logs it, and reschedules itself at a fixed interval, never a rolled one.</li>
+      <li><b>Judging is a comparison, not a second lookup.</b> The guard was already checked before execution; judging afterward means comparing that held-or-not flag against what the call actually did — <code>postcondition</code> if the guard held, "refused cleanly" if it didn't. <code>ACTION_DB</code> is only ever consulted once, at <code>Select</code>.</li>
+      <li><b>A fault worker never waits its turn.</b> Its own next time is just the next entry in its own list, not a reaction to anyone else's state, so it can land back in the queue at a moment that falls in the middle of another worker's action — which is what "mid-flight" means.</li>
+      <li><b><code>power = Power_Off</code> and <code>crashed</code> each independently end the session — either is enough, not both together.</b> A device that's off can't do anything else; a device flagged crashed shouldn't be trusted to keep going even if it still looks powered. <code>crashed</code> is a hook for a real bench Driver to set when hardware genuinely hangs — the simulated Driver never sets it, so today this exit is reached only through the clock.</li>
+    </ul>
+  </section>
+
+  <section id="output">
+    <p class="section-eyebrow">Slide 05</p>
+    <h2>What AI Does Here</h2>
+    <p class="claim">Once the engine stops, there's a folder: <code>session.json</code>, <code>Log/</code>, and two files already computed inside <code>Analysis/</code> — <code>ErrorSignature.json</code> and <code>CoverageReport.json</code>. <code>session.json</code> is the release note — what config, what seed, what model version, and a summary of the result. <code>Log/</code> is the process record — every action issued, every state change, every telemetry sample, exactly as it happened. <code>ErrorSignature</code> records every abnormal behavior the run found; <code>CoverageReport</code> answers a different question — not what went wrong, but how much of the device this run actually reached, by counting.</p>
+
+    <p class="subhead">ErrorSignature — four trigger types, none of them "crash"</p>
+    <p class="claim">Every failed call clusters under exactly one of four <code>trigger_type</code> values, decided in <code>EngineLoop.run_step()</code> the instant a call's guard and its actual result disagree:</p>
+
+    <div class="table-scroll">
+      <pre class="code-json">postcondition_failure    guard held, call went through, postcondition never became true
+postcondition_timeout    guard held, postcondition never resolved within its budget
+illegal_call_accepted    guard did NOT hold, but the device did the call anyway
+unexpected_destination   guard held and postcondition passed, but landed somewhere the chain didn't expect</pre>
+    </div>
+
+    <p class="claim">Same signature, same bucket: <code>trigger_type:action_name</code> is the key <code>TestRecorder.cluster()</code> groups on, so ten instances of wifi's <code>api_connect_wifi</code> timing out become one <code>ErrorSignature</code> with <code>occurrence_count: 10</code>, each carrying the same reproduction shape.</p>
+
+    <p class="subhead">CoverageReport — set arithmetic, wifi as the example</p>
+    <p class="claim">Everything here comes out of plain Python sets accumulated during the run — <code>transitions</code>, <code>pairs</code>, <code>accepted</code>, <code>issued</code> — no AI in the counting. wifi's row from a real nightly run:</p>
+
+    <div class="table-scroll">
+      <pre class="code-json">"wifi": {"states": 3, "transitions": 9, "transitionsWalked": 9, "pairs": 42, "pairsTried": 12}</pre>
+    </div>
+
+    <ul class="notes">
+      <li><b><code>transitions</code>/<code>transitionsWalked</code> is the chain's own denominator.</b> wifi's chain names exactly 9 transitions (<code>MarkovPolicy.chains["wifi"]</code>); the wifi-worker walked all 9, because a walk only ever rolls what the chain already describes.</li>
+      <li><b><code>pairs</code>/<code>pairsTried</code> is a bigger, chain-independent denominator.</b> <code>pairs = states × every action tagged component="wifi"</code> — 3 × 14 = 42, whether or not the chain or a guard would ever legally connect that state to that action. <code>pairsTried</code> counts what actually got attempted, by any worker, accepted or refused — 12 of 42 in this run, which is why a probe exists at all.</li>
+    </ul>
+
+    <p class="claim">AI writes back two things: <code>Analysis/report.md</code>, and one file per proposal under <code>Analysis/proposals/</code>. The <code>RuleBasedAnalyst</code> demo above covers the basic case — cluster on <code>ErrorSignature</code>, propose a regression or flag a model correction. A real LLM analyst reaches further, in ways this rule-based stand-in doesn't attempt:</p>
+
+    <p class="subhead">Beyond ErrorSignature — identify new findings</p>
+    <p class="claim">Not every real problem fails its own assertion. A postcondition that keeps resolving just inside its budget, an action that gets refused the same way every time without ever tripping <code>ok=False</code> — none of this reaches <code>Analysis/ErrorSignature.json</code>, because clustering only ever fires on a failed oracle check. Only something reading all of <code>Log/EngineEvents.jsonl</code> — not the pre-computed files — can notice a repeat that Python never flagged as a failure.</p>
+
+    <p class="subhead">Initiate a bug, and follow up</p>
+    <p class="claim">When a finding reads as the device's fault rather than the model's, and the analyst has been granted access to a real bug tracker, it can go further than <code>report.md</code>: open a ticket with the log attached, reassign it to the SWE who owns that component, and check bug history first so the same issue arriving three releases running becomes one ticket, not three. None of this is <code>pod_mbt/</code>'s job — it's a downstream integration a real deployment would wire up, consuming <code>report.md</code> as its input.</p>
+
+    <p class="subhead">Self-healing on the model</p>
+    <p class="claim">A wrong probability row comes back as a corrected row, a wrong guard or postcondition as corrected text, and either way a person accepts it before it reaches <code>MarkovPolicy</code> or <code>ActionDatabase</code> &mdash; nothing in <code>pod_mbt/</code> lets an analyst reweight anything at runtime. The harder judgment sits one level up: a repeated <code>illegal_call_accepted</code> might be that small a fix, or it might mean the Action Database has no action at all for what the device just did — a modeling gap, not a bad parameter — and only a real LLM reading the reproduction can tell the two apart and propose the missing action; <code>RuleBasedAnalyst</code> structurally can't: it reads the clustered signatures and proposes from the actions already named in them.</p>
+  </section>
+
+  <section id="actionled">
+    <p class="section-eyebrow">Slide 06</p>
+    <h2>Action-Led Test</h2>
+    <p class="claim">TC-01 (Slide 01) is state-led: the worker follows the flow the device was designed for — connect, then get a lease, then stream. Only the transitions somebody drew are ever issued. Every other API in the component is never called at all, in any state. An action-led worker calls them. It ignores the flow and fires whatever the draw hands it at whatever state the device is in, which is how you find out how a state reacts to something it was not expecting: streaming started while nothing is connected, a second disconnect on an already-disconnected link, an address requested before there is a link to have one on.</p>
+
+    <p class="subhead">TC-01's wifi component, eight hours</p>
+    <p class="claim">One probe worker, the same component TC-01 walks. The first calls of the run:</p>
+
+    <div class="table-scroll">
+      <pre class="code-json">t+  0m  Disconnected  api_inject_wrong_ipaddr   in the flow    ok
+t+  3m  Disconnected  inject_ap_psk_changed     off the flow   ok
+t+  5m  Disconnected  inject_router_reboot      off the flow   ok
+t+  8m  Disconnected  api_inject_wrong_ipaddr   in the flow    ok
+t+ 11m  Disconnected  api_disconnect_wifi       off the flow   ok
+t+ 12m  Disconnected  inject_wifi_drop          off the flow   ok
+t+ 14m  Disconnected  api_connect_wifi          in the flow    ok
+t+ 22m  Connected     api_inject_wrong_ipaddr   off the flow   ok
+t+ 24m  Connected     api_get_dhcp              in the flow    ok
+t+ 27m  Connected     api_disconnect_wifi       in the flow    ok</pre>
+    </div>
+
+    <p class="claim">Nothing here is arranged. <code>api_disconnect_wifi</code> at eleven minutes lands on a link that is already down; <code>api_inject_wrong_ipaddr</code> at twenty-two lands on one that is up. Three of the ten calls are transitions the chain declares — the rest are calls TC-01 would never make. Eight hours of that, counted per cell — how many times each API was called against each state:</p>
+
+    <div class="table-scroll">
+      <pre class="code-json">action                     Disconnected    Connected     Streaming
+api_connect_wifi                    30*          32             2
+api_disconnect_wifi                 13            7*            .*
+api_get_dhcp                         7            5*            .
+api_get_ipadd                        8            7*            .
+api_streaming_uplink                 7            2*            1
+api_streaming_downlink               3            4             .*
+api_inject_wrong_psk                 9*          10             .
+api_inject_wrong_ipaddr              8*           5             .
+inject_wifi_drop                     8            5             .
+inject_router_reboot                 8            6             .
+inject_internet_down                 5            5             1
+inject_dhcp_timeout                  9            6             2
+inject_ap_psk_changed               10            3             .
+inject_ap_ssid_changed               3            6             .
+
+*  the nine transitions the chain declares          .  never called</pre>
+    </div>
+
+    <ul class="notes">
+      <li><b>The nine starred cells are the entire state-led run.</b> Everything else on this grid is a call TC-01 cannot produce, no matter how long it runs.</li>
+      <li><b>All ten gaps are in one column.</b> <code>Streaming</code> is the state the device is hardest to get into, and a probe picking its next call at random does not try to get there — so the cells that stay empty are not the rare <em>actions</em>, they are every action in the rare <em>state</em>.</li>
+    </ul>
+
+    <p class="subhead">Both together — the grid fills</p>
+    <p class="claim">The gaps close when the two are combined. That is a worker kind of its own — <code>WorkerKind.SWEEP</code>, a fourth alongside walk, probe and schedule. Inside a state it calls only what it has not called there yet; when that list is empty it hands the turn to the chain, which unlike a random draw is guaranteed to pick an action that moves. Off the flow to cover a state, on the flow to leave it.</p>
+
+    <div class="table-scroll">
+      <table class="ref-table">
+        <thead><tr><th>Worker</th><th>Transitions</th><th>State &times; action</th></tr></thead>
+        <tbody>
+          <tr><td>state-led walk</td><td>9 / 9 (100%)</td><td>9 / 42 (21%)</td></tr>
+          <tr><td>action-led probe</td><td>7 / 9 (78%)</td><td>32 / 42 (76%)</td></tr>
+          <tr><td><b>sweep &mdash; both</b></td><td><b>9 / 9 (100%)</b></td><td><b>42 / 42 (100%)</b></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <p class="claim">Same component, same eight hours, same seed. The sweep had all 42 cells just over two hours in, on its 75th call — and across five seeds it landed between 67 and 90 calls every time, against a floor of 42. The probe spent the same eight hours drawing at random and finished at 32.</p>
+  </section>
+
+  <section id="fuzz">
+    <p class="section-eyebrow">Slide 07</p>
+    <h2>Pure Fuzz Test</h2>
+    <p class="claim">A fuzz test calls the device at random, as hard as it will take, and watches what that does to the device rather than what any one call returned — the questions belong to the hour rather than to the call: does memory climb and stay climbed, does CPU settle back down between bursts, is the thing still answering at the end. This framework runs one without adding anything: a <code>probe</code> already fires without consulting the flow, so four of them with <code>avgIntervalMs</code> on the engine's one-second floor is the entire plan, and <code>BackgroundMonitor</code> — sampling cpu, memory and power every thirty seconds into <code>Log/ResourceSnapshot.json</code> — is already running in every session.</p>
+
+    <p class="subhead">Simulation numbers</p>
+    <p class="claim">One hour of <code>configs/fuzz.json</code>, four workers, no code changes:</p>
+
+    <div class="table-scroll">
+      <pre class="code-json">calls in 1h      10,558
+<b>off the flow      7,570 / 10,558  (72%)</b>
+per component    wifi 2,634   bt 2,645   matter 2,650   system 2,629</pre>
+    </div>
+
+    <ul class="notes">
+      <li><b>72% of these calls are pairs no chain declares.</b> A walk cannot issue one — its next call always comes from the chain's row for wherever it is — and no regression suite contains one: <code>api_complete_matter_commissioning</code> against a fabric that was never started, a wrong setup code fed to a commissioning that is not running. Action-led is the kind that reaches them; what fuzz changes is the rate, and that every component is taking them at once.</li>
+      <li><b>All four components are under pressure at the same time.</b> The load is even to within half a percent, so nothing here is four separate tests sharing a clock — it is one device being pushed on every interface it has, which is the only condition under which a leak in one of them shows up as a slope in the whole.</li>
+    </ul>
+  </section>
+
+  <section id="planner">
+    <p class="section-eyebrow">Slide 08</p>
+    <h2>Run Planner</h2>
+    <p class="claim">A test engineer does not configure a run any more. They say what changed, what the bench can drive, and how long it is free — and the planner turns that, plus every previous run folder, into <code>next_run.json</code>. This slide is what that plan is made of: the four kinds of worker, the four things a TE fills in to write one by hand, and the planner itself, deriving a plan live from three answers.</p>
+
+    <p class="subhead">The four kinds of worker</p>
+    <p class="claim">Not modes a session picks, but four different answers to one question — what decides the next call. A run usually uses more than one.</p>
+
+    <div class="table-scroll">
+      <table class="ref-table compare three">
+        <thead><tr><th>Kind</th><th>What chooses the next action</th><th>What it is for</th></tr></thead>
+        <tbody>
+          <tr><td><code>walk</code><br>state-led</td><td>The chain: this component's current state has a row, and the row is rolled. The model chooses <em>and</em> judges.</td><td><b>Whether the designed flow holds.</b> A realistic walk with a steady state you can state exactly, perturbed on a schedule, measured by how far it drifts and how fast it returns.</td></tr>
+          <tr><td><code>probe</code><br>action-led</td><td>Chance: any action from its pool, at whatever state the device is in.</td><td><b>What a state does when called out of order.</b> The chains describe 24 transitions; the device has 84 state &times; action combinations. A probe is how the rest gets reached.</td></tr>
+          <tr><td><code>sweep</code><br>mix</td><td>What this state has not been called with yet; and when that list empties, the chain, to move somewhere with cells still open.</td><td><b>Every cell, in the fewest calls.</b> 84 of 84 in eight hours — against a probe that plateaus short of it and a walk that cannot pass 24.</td></tr>
+          <tr><td><code>schedule</code><br>clock-led</td><td>A list of times: faults, and saved reproductions replayed.</td><td><b>Interrupting the other three.</b> A stepwise worker never starts a new action before the last resolves, so only a clock can land a fault mid-flight.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <ul class="notes">
+      <li><b>No kind terminates by itself.</b> <code>durationMs</code> is what ends the session; a schedule ends when its list runs out, which is why a replay is the one thing whose length you can count in advance.</li>
+      <li><b>Fuzz is not a fifth kind.</b> It is <code>probe</code> with the pacing on the floor and every component loaded at once (Slide 07) — the guard never gated execution, so there is nothing to switch off. What changes is what gets read afterwards, not what the engine does.</li>
+      <li><b>Drift belongs to the walk alone.</b> Neither a probe nor a sweep is trying to reproduce realistic usage, so the distribution either one produces means nothing. Reading one number for a mixed session hides that: report drift per component, and only for walked chains.</li>
+    </ul>
+
+    <p class="subhead">Plan a run</p>
+    <p class="claim">A test engineer picks one of the four, states three things about the bench, and may fine-tune a fifth; everything else is derived. What comes out is a file <code>run.py</code> will accept, block name included. It also lists what the plan gives up, because a plan that names only its wins is advocacy. One difference from <code>pod_mbt/plan.py</code> is worth naming: here a person chooses the test, where that planner works it out from the run folders it has read. A component whose grid is still more than 30% unreached gets swept rather than walked and probed, and once the grid closes it goes back to a walk — the choice this panel puts in a radio button is one the planner makes from evidence.</p>
+
+    <div class="pbanner" id="kindBanner" role="radiogroup" aria-label="Which test"></div>
+
+    <div class="planner">
+      <form class="planner-form" id="plannerForm">
+        <fieldset class="pgroup" data-for="walk probe sweep">
+          <legend><span class="pnum">2</span> What changed?</legend>
+          <div class="popts popts-row" id="changedOpts"></div>
+        </fieldset>
+
+        <fieldset class="pgroup" data-for="walk probe sweep fuzz">
+          <legend><span class="pnum">3</span> What can this bench drive?</legend>
+          <div class="popts popts-row" id="scopeOpts"></div>
+        </fieldset>
+
+        <fieldset class="pgroup" data-for="walk probe sweep fuzz">
+          <legend><span class="pnum">4</span> How long is it free?</legend>
+          <div class="popts" id="stopOpts"></div>
+        </fieldset>
+
+        <fieldset class="pgroup" data-for="walk probe sweep">
+          <legend><span class="pnum">5</span> How fast should each worker act? <span class="pnote">(optional, in seconds — blank keeps the derived pace)</span></legend>
+          <div class="popts" id="intervalOpts"></div>
+        </fieldset>
+      </form>
+
+      <aside class="planner-out" aria-live="polite">
+        <div class="pout-head">
+          <span class="pout-title">next_run.json</span>
+          <span class="pout-reach" id="reachPill">—</span>
+        </div>
+
+        <div class="pblock">
+          <h4>Why this plan</h4>
+          <ul class="plist" id="whyOut"></ul>
+        </div>
+
+        <div class="pblock">
+          <h4>What it gives up</h4>
+          <ul class="plist" id="giveOut"></ul>
+        </div>
+
+        <div class="pblock">
+          <h4>Files it reads</h4>
+          <ul class="plist" id="filesOut"></ul>
+        </div>
+
+        <div class="pblock">
+          <h4>Bench hardware required</h4>
+          <ul class="plist" id="rigOut"></ul>
+        </div>
+
+        <div class="pblock" id="warnBlock" hidden>
+          <h4>Check before you launch</h4>
+          <ul class="plist" id="warnOut"></ul>
+        </div>
+
+        <div class="pblock">
+          <h4>The plan itself</h4>
+          <pre class="code-json pjson" id="jsonOut"></pre>
+        </div>
+      </aside>
+    </div>
+
+    <div class="pchains" id="chainSlots"></div>
+
+    <ul class="notes">
+      <li><b>The hardware list is computed from the Action Database, not from a lookup table.</b> Every action carries a <code>component</code> and an <code>executor</code> (<code>docs/data_structure.md</code>). The panel filters the 32 actions down to the ones this configuration can actually select, then collects the distinct bench boxes those actions require. Narrow the components and the list shrinks with them — a plan that cannot reach the AP does not ask anyone to buy one.</li>
+      <li><b>The plan is derived, not advised.</b> The pacing rules are the ones <code>pod_mbt/plan.py</code> uses — worker per component, the changed one paced twice as fast, bench faults spread across the session. Swapping in an LLM planner changes the reasoning, not the document: it still writes workers, a duration, and what the session gives up.</li>
+      <li><b>Emphasis is the only lever a plan has.</b> It can pace a worker faster, put the fault budget where nothing has been reached, and pick which regressions ride along — all of which only reference actions that already exist. Changing a probability row is a proposal instead, and waits for review.</li>
+      <li><b>The fault worker is not a different class.</b> It is the same <code>EngineLoop</code> with a schedule instead of a chain. That is also why a saved reproduction replays through it: a reproduction is a list of times and actions, which is exactly what it reads.</li>
+    </ul>
+
+  </section>
+
+
+  <div class="refdocs">
+    <h3>The reference behind these slides</h3>
+    <p><code>docs/data_structure.md</code> — every enum value, the complete 32-row Action Database, and the 24-transition chain table. Slide 03 is the short version.</p>
+    <p><code>docs/architecture_overview.md</code> — the component diagram in full, and what each arrow is allowed to mean. Slide 02 is the short version.</p>
+    <p><code>docs/flow_chart.md</code> — one session end to end, from cold start to the saved folder. Slide 04 is the short version.</p>
+    <p><code>docs/run_planner.md</code> — what a run is made of, and the rules a plan is derived by. Slide 08 is the short version.</p>
+    <p><code>docs/sample_test_case.md</code> — four plans in <code>configs/</code> and the numbers each produced, printed by <code>python3 -m pod_mbt.run</code>.</p>
+    <p><code>README.md</code> — how to run any of it, and which file holds what.</p>
+  </div>
+
+  <footer>POD-MBT BLUEPRINT — SHEETS 01–09 — FOR REVIEW</footer>
+
+</div>
+
+<script>
+(function(){
+  var A=function(n,c,cat,x,rig){return {n:n,c:c,cat:cat,x:x,rig:rig||null};};
+  var ACTIONS=[
+    A('api_connect_wifi','wifi','api','dut'),
+    A('api_disconnect_wifi','wifi','api','dut'),
+    A('api_get_dhcp','wifi','api','dut'),
+    A('api_get_ipadd','wifi','api','dut'),
+    A('api_streaming_uplink','wifi','api','dut'),
+    A('api_streaming_downlink','wifi','api','dut'),
+    A('api_inject_wrong_psk','wifi','fault','dut'),
+    A('api_inject_wrong_ipaddr','wifi','fault','dut'),
+    A('inject_wifi_drop','wifi','fault','equipment','router'),
+    A('inject_router_reboot','wifi','fault','equipment','router'),
+    A('inject_internet_down','wifi','fault','equipment','router'),
+    A('inject_dhcp_timeout','wifi','fault','equipment','router'),
+    A('inject_ap_psk_changed','wifi','fault','equipment','router'),
+    A('inject_ap_ssid_changed','wifi','fault','equipment','router'),
+    A('api_bt_pairing','bt','api','dut'),
+    A('api_bt_connect','bt','api','dut'),
+    A('api_bt_disconnect','bt','api','dut'),
+    A('api_bt_audio_streaming','bt','api','dut'),
+    A('api_inject_wrong_devicename','bt','fault','dut'),
+    A('api_inject_no_peer','bt','fault','dut'),
+    A('inject_phone_disconnect','bt','fault','equipment','phone'),
+    A('inject_phone_reboot','bt','fault','equipment','phone'),
+    A('inject_phone_out_of_range','bt','fault','equipment','atten'),
+    A('api_start_matter','matter','api','dut'),
+    A('api_complete_matter_commissioning','matter','api','dut'),
+    A('api_remove_matter_fabric','matter','api','dut'),
+    A('inject_wrong_setup_code','matter','fault','dut'),
+    A('inject_matter_controller_reject','matter','fault','equipment','ctrl'),
+    A('inject_cpu_stress','system','fault','dut'),
+    A('inject_memory_stress','system','fault','dut'),
+    A('clear_system_stress','system','fault','dut'),
+    A('inject_power_reboot','system','fault','equipment','pdu')
+  ];
+
+  var RIG={
+    router:['Controllable Router','scriptable AP — OpenWrt or a vendor API, not a stock consumer router'],
+    phone:['Control Phone / Tablet','driven over ADB; also acts as the A2DP peer'],
+    atten:['RF Attenuator','the only way to produce a real RSSI drop rather than a simulated delay'],
+    ctrl:['Matter Controller','must be drivable into refusing or timing out a commissioning attempt'],
+    pdu:['Smart PDU / Relay','cuts and restores power under host control']
+  };
+
+  var COMPS=[['wifi','Wi-Fi'],['bt','Bluetooth'],['matter','Matter'],['system','System \u2014 power, CPU, memory']];
+  var DURS=[
+    ['1800000','30 minutes','a short, attended session'],
+    ['28800000','8 hours','an overnight run'],
+    ['86400000','24 hours','a full-day soak']
+  ];
+  // The planner mirrors pod_mbt/plan.py's RuleBasedPlanner: same three decisions, same
+  // document. An LLM planner replaces the rules, not the shape of what comes out.
+  // The four tests a TE picks between. `block` is the key the plan is written under —
+  // the same key run.py's load() reads. Fuzz is not a kind of its own: it is a probe
+  // with the pacing on the floor, so it writes itself into the same "probe" block.
+  var KINDS=[
+    ['walk','state-led \u2014 walk','Follow the flow the device was designed for, and see whether it holds when something knocks it.'],
+    ['probe','action-led \u2014 probe','Call a component out of order, and see what a state does with something it was not expecting.'],
+    ['sweep','mix \u2014 sweep','Exhaust a state, then take the chain out of it. Every state \u00d7 action cell, in the fewest calls.'],
+    ['fuzz','pure fuzz \u2014 probe, floored','Every component at the engine\u2019s one-second floor, read for whether it is still answering.']
+  ];
+  var BLOCK={walk:'walk',probe:'probe',sweep:'sweep',fuzz:'probe'};
+  // Each component's chain as it stands in pod_mbt/policy.py today. A cell may hold
+  // more than one transition, separated by ";" — wifi's Disconnected row has two
+  // self-loops and bt's Idle row has three, and a one-per-cell matrix loses them.
+  var CHAINDATA={"wifi":{"states":["Disconnected","Connected","Streaming"],"matrix":[["0.15 (api_inject_wrong_psk); 0.1 (api_inject_wrong_ipaddr)","0.75 (api_connect_wifi)","0"],["0.3 (api_disconnect_wifi)","0.1 (api_get_dhcp); 0.1 (api_get_ipadd)","0.5 (api_streaming_uplink)"],["0.4 (api_disconnect_wifi)","0","0.6 (api_streaming_downlink)"]]},"bt":{"states":["Idle","Connected \u00b7 None","Connected \u00b7 Streaming"],"matrix":[["0.1 (api_bt_disconnect); 0.1 (api_inject_wrong_devicename); 0.05 (api_inject_no_peer)","0.5 (api_bt_pairing); 0.25 (api_bt_connect)","0"],["0.35 (api_bt_disconnect)","0","0.65 (api_bt_audio_streaming)"],["0.7 (api_bt_disconnect)","0","0.3 (api_bt_audio_streaming)"]]},"matter":{"states":["Uncommissioned","Commissioning","Operational"],"matrix":[["0.2 (api_remove_matter_fabric)","0.8 (api_start_matter)","0"],["0.35 (inject_wrong_setup_code)","0","0.65 (api_complete_matter_commissioning)"],["0.7 (api_remove_matter_fabric)","0","0.3 (api_start_matter)"]]}};
+  // walk and sweep both start from state.chain_state(component), and system has no
+  // chain — so either one pointed at system issues nothing at all.
+  function needsChain(){return S.kind==='walk'||S.kind==='sweep';}
+
+  var S={kind:'walk',changed:{},scope:{wifi:1,bt:1,matter:1,system:1},dur:'28800000',custMin:90,interval:{}};
+
+  function el(t,c,h){var e=document.createElement(t);if(c)e.className=c;if(h!=null)e.innerHTML=h;return e;}
+  function opt(kind,name,val,label,why,checked){
+    var l=el('label','popt'+(checked?' on':''));
+    var i=document.createElement('input');
+    i.type=kind;i.name=name;i.value=val;i.checked=!!checked;i.id=name+'-'+val;
+    var t=el('span','popt-txt');
+    t.appendChild(el('span','popt-name',label));
+    if(why)t.appendChild(el('span','popt-why',why));
+    l.appendChild(i);l.appendChild(t);
+    return l;
+  }
+  function keysOn(o){return Object.keys(o).filter(function(k){return o[k];});}
+  function scope(){return keysOn(S.scope);}
+  function changed(){return keysOn(S.changed).filter(function(c){return S.scope[c];});}
+  function durMs(){return S.dur==='custom'?S.custMin*60000:parseInt(S.dur,10);}
+  function reachable(){
+    var cs=scope();
+    return ACTIONS.filter(function(a){return cs.indexOf(a.c)>=0;});
+  }
+  function drivable(){
+    var cs=scope();
+    return needsChain()? cs.filter(function(c){return c!=='system';}) : cs;
+  }
+  function faults(){
+    if(S.kind==='fuzz')return [];   // sustained load is the experiment; a fault is noise in it
+    var hot=changed();
+    var eq=reachable().filter(function(a){return a.cat==='fault'&&a.x==='equipment';});
+    var pick=hot.length? eq.filter(function(a){return hot.indexOf(a.c)>=0;}) : eq;
+    return (pick.length?pick:eq).slice(0,6).map(function(a){return a.n;});
+  }
+  function defaultIntervalMs(c){
+    if(S.kind==='fuzz')return 1000;
+    if(S.kind==='sweep')return 120000;
+    if(S.kind==='probe')return 180000;
+    return changed().indexOf(c)>=0?120000:240000;
+  }
+  function intervalMs(c){
+    var v=S.interval[c],sec=v?parseFloat(v):NaN;
+    return (!isNaN(sec)&&sec>0)?Math.round(sec*1000):defaultIntervalMs(c);
+  }
+  function overridden(){return scope().filter(function(c){var v=S.interval[c],sec=v?parseFloat(v):NaN;return !isNaN(sec)&&sec>0;});}
+  function workers(){
+    return drivable().map(function(c){
+      return {workerId:c+'-'+S.kind,component:c,avgIntervalMs:intervalMs(c)};
+    });
+  }
+  // The shape run.py's load() actually reads: one block named for the kind, and faults
+  // as their own list alongside it.
+  function planObj(){
+    var plan={sessionId:'PLANNED-001',durationMs:durMs()};
+    plan[BLOCK[S.kind]]=workers();
+    var f=faults();
+    if(f.length){
+      var step=Math.max(60000,Math.floor(durMs()/(f.length+1)));
+      plan.faults=f.map(function(n,i){return {actionName:n,atMs:step*(i+1)};});
+    }
+    plan.intent={test:S.kind,changed:changed(),minutes:Math.round(durMs()/60000),bench:'lab-03'};
+    plan.generatedBy='RuleBasedPlanner';
+    plan.status='draft \u2014 a person accepts this before it runs';
+    return plan;
+  }
+  function kindRow(){var r=null;KINDS.forEach(function(x){if(x[0]===S.kind)r=x;});return r;}
+  function why(){
+    var hot=changed(),out=[],f=faults(),k=kindRow();
+    out.push('<b>'+k[1]+'</b> \u2014 '+k[2]
+      +' <span>It is written under "'+BLOCK[S.kind]+'" in the plan, which is the block run.py reads.</span>');
+    if(S.kind==='fuzz')
+      out.push('Every worker sits at the engine\u2019s 1,000 ms floor. <span>The reading is Log/ResourceSnapshot.json across the session, not the findings \u2014 the question is whether it is still answering.</span>');
+    else if(S.kind==='sweep')
+      out.push('Each worker calls only what that state has not been called with yet, and takes the chain out when the list empties. <span>Off the flow to cover a state, on the flow to leave it.</span>');
+    else out.push(hot.length
+      ? '<b>'+hot.join(', ')+'</b> changed, so '+(hot.length>1?'those workers act':'that worker acts')
+        +' twice as often as the others. <span>The MarkovPolicy rows are untouched \u2014 weighting them is a proposal, not a plan.</span>'
+      : 'Nothing was named as changed, so every component in scope is paced the same. <span>Emphasis is the one lever a plan has; without a suspect there is nothing to aim at.</span>');
+    if(f.length)out.push('The async worker carries <b>'+f.length+'</b> bench fault(s), spread across the session. <span>A fault that must land while another action is in flight cannot be rolled by a stepwise worker.</span>');
+    var ov=overridden();
+    if(ov.length)out.push('<b>'+ov.join(', ')+'</b> '+(ov.length>1?'use':'uses')+' the pace set below, in place of the size-derived default. <span>That number is the only thing step 4 changes — the row it walks is still untouched.</span>');
+    out.push('The guard judges but never gates. <span>Every call goes out; one the guard says should fail is asserted against state unchanged, error returned, no crash.</span>');
+    return out;
+  }
+  function gives(){
+    var hot=changed(),out=[],cs=scope();
+    if(hot.length){
+      var quiet=cs.filter(function(c){return hot.indexOf(c)<0;});
+      if(quiet.length)out.push('<b>'+quiet.join(', ')+'</b> run at half the rate of '+hot.join(', ')+'. <span>A regression there is likelier to be missed this session than last.</span>');
+    }
+    var off=COMPS.map(function(c){return c[0];}).filter(function(c){return cs.indexOf(c)<0;});
+    if(off.length)out.push('<b>'+off.join(', ')+'</b> not exercised at all. <span>Nothing this session says anything about them.</span>');
+    if(needsChain()&&S.scope.system)out.push('<b>system</b> is in scope but a '+S.kind+' cannot drive it. <span>Both kinds start from the component\u2019s chain, and system has none \u2014 the worker would issue nothing. Use a probe for cpu, memory and power.</span>');
+    if(S.kind==='fuzz')out.push('Findings will pile up and go unread. <span>The oracle still runs on every one of these calls; this plan is not read for what it judged, only for whether the device survived it.</span>');
+    if(durMs()<7200000)out.push('Under two hours is short for a weighted random walk. <span>Coverage will be luck rather than method.</span>');
+    if(!faults().length)out.push('No bench faults scheduled. <span>Only what the Pod can do to itself gets tested.</span>');
+    if(!out.length)out.push('Nothing obvious \u2014 every component in scope is paced the same and faults are scheduled. <span>A plan with nothing to give up usually means nothing to aim at either.</span>');
+    return out;
+  }
+
+  // walk and sweep are the two that roll a chain, so those are the two that make a TE
+  // supply one. The tool is the same one Slide 01 carries; it is instantiated per
+  // component here, opened on that component's current rows.
+  function renderChains(){
+    var host=document.getElementById('chainSlots');
+    if(!host)return;
+    if(!needsChain()){host.innerHTML='';host.hidden=true;return;}
+    var want=drivable().filter(function(c){return CHAINDATA[c];});
+    var have=host.getAttribute('data-shown')||'';
+    if(have===want.join(',')){host.hidden=!want.length;return;}
+    host.setAttribute('data-shown',want.join(','));
+    host.innerHTML='';
+    host.hidden=!want.length;
+    want.forEach(function(c){
+      var d=CHAINDATA[c];
+      host.appendChild(el('div','pchain-head',
+        '<b>'+c+'</b> \u2014 '+d.states.length+' states, the chain this '+S.kind+' will roll'));
+      var box=el('div','mtool');
+      box.innerHTML=
+        '<div class="mtool-form">'
+        +'<fieldset class="pgroup"><legend><span class="pnum">1</span> States</legend>'
+        +'<input type="text" class="mstates" spellcheck="false" value="'+d.states.join(', ')+'"></fieldset>'
+        +'<fieldset class="pgroup"><legend><span class="pnum">2</span> Matrix \u2014 each cell is <code>0</code>, or <code>p (action)</code>; separate several with <code>;</code></legend>'
+        +'<div class="mmatrix-wrap"><table class="mmatrix"></table></div></fieldset>'
+        +'<ul class="plist mwarnout"></ul></div>'
+        +'<div class="mtool-out"><div class="plate-frame"><div class="f4 mdrawing"></div></div></div>';
+      box.mSeed={states:d.states,matrix:d.matrix};
+      host.appendChild(box);
+    });
+    if(window.initMatrixTools)window.initMatrixTools();
+  }
+
+  function render(){
+    var ko=document.getElementById('kindBanner');ko.innerHTML='';
+    KINDS.forEach(function(k){
+      var l=el('label',S.kind===k[0]?'on':'');
+      var i=document.createElement('input');
+      i.type='radio';i.name='pkind';i.value=k[0];i.checked=S.kind===k[0];
+      l.appendChild(i);
+      l.appendChild(el('span','bname',k[1]));
+      l.appendChild(el('span','bwhy',k[2]));
+      ko.appendChild(l);
+    });
+    // Only the groups this test actually needs
+    document.querySelectorAll('#plannerForm .pgroup[data-for]').forEach(function(g){
+      g.hidden = g.getAttribute('data-for').split(' ').indexOf(S.kind)<0;
+    });
+    renderChains();
+    var co=document.getElementById('changedOpts');co.innerHTML='';
+    COMPS.forEach(function(c){co.appendChild(opt('checkbox','pchanged',c[0],c[1],'',S.changed[c[0]]));});
+    var so=document.getElementById('scopeOpts');so.innerHTML='';
+    COMPS.forEach(function(c){so.appendChild(opt('checkbox','pscope',c[0],c[1],'',S.scope[c[0]]));});
+
+    var st=document.getElementById('stopOpts');st.innerHTML='';
+    DURS.forEach(function(d){
+      st.appendChild(opt('radio','pdur',d[0],d[0]+' ms \u2014 '+d[1],d[2],S.dur===d[0]));
+    });
+    st.appendChild(opt('radio','pdur','custom','Custom','Entered in minutes, written to the plan in milliseconds.',S.dur==='custom'));
+    if(S.dur==='custom'){
+      var cw=el('div','pcustom');
+      var lab=document.createElement('label');lab.setAttribute('for','custMin');lab.textContent='minutes';
+      var num=document.createElement('input');
+      num.type='number';num.id='custMin';num.name='pcust';num.min='1';num.step='1';num.value=S.custMin;
+      cw.appendChild(num);cw.appendChild(lab);
+      cw.appendChild(el('span','pms','= '+(S.custMin*60000).toLocaleString()+' ms'));
+      st.appendChild(cw);
+    }
+
+    var io=document.getElementById('intervalOpts');io.innerHTML='';
+    if(!scope().length){
+      io.appendChild(el('div','pinterval-empty','Pick at least one part of the device first.'));
+    } else {
+      COMPS.filter(function(c){return drivable().indexOf(c[0])>=0;}).forEach(function(c){
+        var row=el('div','pinterval-row');
+        var lab=document.createElement('label');lab.setAttribute('for','pint-'+c[0]);lab.textContent=c[1];
+        var num=document.createElement('input');
+        num.type='number';num.id='pint-'+c[0];num.name='pinterval';num.min='1';num.step='1';
+        num.dataset.c=c[0];num.value=S.interval[c[0]]||'';
+        num.placeholder=(defaultIntervalMs(c[0])/1000)+' (default)';
+        row.appendChild(lab);row.appendChild(num);
+        row.appendChild(el('span','pms','= '+intervalMs(c[0]).toLocaleString()+' ms'
+          +(S.interval[c[0]]?'':' — derived')));
+        io.appendChild(row);
+      });
+    }
+
+    var reach=reachable();
+    document.getElementById('reachPill').textContent=
+      drivable().length? reach.length+' / 32 actions in scope' : 'nothing this test can drive';
+
+    function fill(id,items,empty){
+      var ul=document.getElementById(id);ul.innerHTML='';
+      (items.length?items:[empty]).forEach(function(t){
+        ul.appendChild(el('li',items.length?'':'none',t));});
+    }
+    fill('whyOut',drivable().length?why():[],'Pick at least one part of the device.');
+    fill('giveOut',scope().length?gives():[],'\u2014');
+
+    var files=[];
+    if(scope().length){
+      files.push('<b>ActionDatabase</b> <span>\u2014 the 32 actions, shared by every worker</span>');
+      files.push('<b>MarkovPolicy</b> <span>\u2014 one probability row per state, human-owned</span>');
+      if(faults().length)files.push('<b>ActionSchedule</b> <span>\u2014 written by the planner, for the async worker</span>');
+      files.push('<b>Previous run folders</b> <span>\u2014 coverage, refused actions, clustered failures</span>');
+    }
+    fill('filesOut',files,'Pick at least one part of the device.');
+
+    var rigs={};reach.forEach(function(a){if(a.rig)rigs[a.rig]=1;});
+    var rl=document.getElementById('rigOut');rl.innerHTML='';
+    var keys=Object.keys(rigs);
+    if(scope().length)rl.appendChild(el('li','','<b>Host + UART/Serial</b> <span>\u2014 ground truth for every OracleCheck</span>'));
+    keys.forEach(function(k){rl.appendChild(el('li','','<b>'+RIG[k][0]+'</b> <span>\u2014 '+RIG[k][1]+'</span>'));});
+    if(!scope().length){rl.innerHTML='';rl.appendChild(el('li','none','\u2014'));}
+
+    var warns=[];
+    if(!drivable().length)warns.push('Nothing this test can drive is selected, so no worker would be written.');
+    if(scope().length>1)warns.push('Concurrent workers share CompositeState and CoverageTracker \u2014 both need a lock.');
+    if(changed().length>2)warns.push('Naming most of the device as "changed" is the same as naming none of it: everything ends up paced alike.');
+    var wb=document.getElementById('warnBlock'),wl=document.getElementById('warnOut');
+    wl.innerHTML='';wb.hidden=!warns.length;
+    warns.forEach(function(w){wl.appendChild(el('li','warn',w));});
+
+    document.getElementById('jsonOut').textContent=JSON.stringify(planObj(),null,2);
+  }
+
+  document.getElementById('kindBanner').addEventListener('change',function(e){
+    if(e.target.name!=='pkind')return;
+    S.kind=e.target.value;
+    render();
+  });
+
+  document.getElementById('plannerForm').addEventListener('change',function(e){
+    var t=e.target;
+    if(t.name==='pchanged')S.changed[t.value]=t.checked?1:0;
+    else if(t.name==='pscope')S.scope[t.value]=t.checked?1:0;
+    else if(t.name==='pdur')S.dur=t.value;
+    else if(t.name==='pcust'){
+      var v=parseInt(t.value,10);
+      S.custMin=(isNaN(v)||v<1)?1:v;
+      render();
+      var f=document.getElementById('custMin');
+      if(f){f.focus();f.setSelectionRange(f.value.length,f.value.length);}
+      return;
+    }
+    render();
+  });
+  // Number inputs fire 'change' late (on blur); this feature reads better live, and by
+  // the time 'change' fires too the field has already lost focus, so it just re-renders.
+  document.getElementById('plannerForm').addEventListener('input',function(e){
+    var t=e.target;
+    if(t.name!=='pinterval')return;
+    S.interval[t.dataset.c]=t.value;
+    render();
+    var g=document.getElementById('pint-'+t.dataset.c);
+    if(g){g.focus();g.setSelectionRange(g.value.length,g.value.length);}
+  });
+  render();
+})();
+</script>
+
+<script>
+(function(){
+  // TE input: state names + one matrix where a cell is either 0 (no transition) or
+  // "p (action)" — probability and the action that causes it, in the same cell. This
+  // mirrors MarkovPolicy.matrix() (Slide 03) run backwards: there, a chain written in
+  // code is the source of truth and the matrix is derived from it for the maths; here
+  // the matrix is what the TE types, and the chain drawing is derived from it.
+  //
+  // Every .mtool on the page gets its own — Slide 01 carries one, and Slide 08's
+  // planner adds one per component whenever the chosen test rolls a chain. Each needs its own
+  // instance: state lives in closures keyed to that instance's own DOM, not in global
+  // ids, so editing one copy never touches the other.
+  var DEFAULT_STATES = ['S0','S1','S2','S3'];
+  var DEFAULT_MATRIX = [
+    ['0','2/3 (Action A)','1/3 (Action B)','0'],
+    ['0','0','0','1 (Action C)'],
+    ['0','0','0','1 (Action D)'],
+    ['1/2 (Action E)','0','0','1/2 (Action F)']
+  ];
+
+  function esc(s){
+    return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+  function unit(dx,dy){var d=Math.sqrt(dx*dx+dy*dy)||1;return [dx/d,dy/d];}
+
+  // "" / "0" -> no edge. Otherwise the first token is the probability (a decimal or an
+  // a/b fraction) and everything after the first space is the action, kept as typed.
+  // A cell holds every transition between those two states, not just one: wifi's
+  // Disconnected row has two self-loops, and bt's Idle row has three. Separated by ";".
+  function parseCellList(raw){
+    return (raw||'').split(';').map(parseCell).filter(function(c){return c;});
+  }
+  function parseCell(raw){
+    var s=(raw||'').trim();
+    if(!s||s==='0')return null;
+    var sp=s.indexOf(' ');
+    var pTok = sp<0 ? s : s.slice(0,sp);
+    var action = sp<0 ? '' : s.slice(sp+1).trim().replace(/^\((.*)\)$/,'$1');
+    var p;
+    if(pTok.indexOf('/')>=0){
+      var parts=pTok.split('/');
+      p=parseFloat(parts[0])/parseFloat(parts[1]);
+    } else {
+      p=parseFloat(pTok);
+    }
+    if(isNaN(p))return null;
+    return {p:p, action:action};
+  }
+
+  function parseStates(raw){
+    return (raw||'').split(',').map(function(s){return s.trim();}).filter(function(s){return s.length;});
+  }
+
+  function drawChain(states, edges, markerId){
+    var n=states.length;
+    var nodeR = n<=4?42: n<=6?36:30;
+    var ring = Math.max(120, 34*n);
+    // Margin has to clear a self-loop's own label reach (nodeR+50, plus its own text
+    // width) on every side — a self-loop can land at any angle, not just outward-right.
+    // ...and when a cell holds more than one transition, each extra one is pushed a
+    // further 30px out and 30px across, so the margin has to grow with the worst cell.
+    var maxK = 0;
+    edges.forEach(function(e){ if((e.k||0)>maxK) maxK=e.k||0; });
+    var PAD = 100 + maxK*46;
+    var cx=ring+nodeR+PAD, cy=ring+nodeR+PAD;
+    var pos=[];
+    for(var i=0;i<n;i++){
+      var th=-Math.PI/2 + i*2*Math.PI/n;
+      pos.push([cx+ring*Math.cos(th), cy+ring*Math.sin(th)]);
+    }
+    var W=cx+ring+nodeR+PAD, H=cy+ring+nodeR+PAD;
+    var out=[];
+    edges.forEach(function(e){
+      var a=e.a,b=e.b,text=e.action?esc(e.action):'', pct=e.p.toFixed(2);
+      var k=e.k||0;   // which of the duplicates between these two states this one is
+      var ax=pos[a][0], ay=pos[a][1];
+      if(a===b){
+        var u=unit(ax-cx, ay-cy);
+        var lx0=ax+u[0]*nodeR, ly0=ay+u[1]*nodeR, px=-u[1], py=u[0];
+        out.push('<path class="medge" marker-end="url(#'+markerId+')" d="M'+(lx0+px*12).toFixed(0)+','+(ly0+py*12).toFixed(0)+
+          ' Q'+(lx0+u[0]*54).toFixed(0)+','+(ly0+u[1]*54).toFixed(0)+' '+
+          (lx0-px*12).toFixed(0)+','+(ly0-py*12).toFixed(0)+'"/>');
+        var tx=ax+u[0]*(nodeR+50+k*30)-u[1]*k*30,
+            ty=ay+u[1]*(nodeR+50+k*30)+u[0]*k*30;
+        if(text)out.push('<text class="mact" x="'+tx.toFixed(0)+'" y="'+(ty-6).toFixed(0)+'">'+text+'</text>');
+        out.push('<text class="mp" x="'+tx.toFixed(0)+'" y="'+(ty+9).toFixed(0)+'">'+pct+'</text>');
+        return;
+      }
+      var bx=pos[b][0], by=pos[b][1];
+      var lo=Math.min(a,b), hi=Math.max(a,b);
+      var nrm=unit(-(pos[hi][1]-pos[lo][1]), pos[hi][0]-pos[lo][0]);
+      var mx=(ax+bx)/2, my=(ay+by)/2, bow=(30+nodeR*0.3)*(a<b?1:-1)*(1+k*0.75);
+      var qx=mx+nrm[0]*bow, qy=my+nrm[1]*bow;
+      var su=unit(qx-ax,qy-ay), eu=unit(qx-bx,qy-by);
+      out.push('<path class="medge" marker-end="url(#'+markerId+')" d="M'+(ax+su[0]*nodeR).toFixed(0)+','+(ay+su[1]*nodeR).toFixed(0)+
+        ' Q'+qx.toFixed(0)+','+qy.toFixed(0)+' '+(bx+eu[0]*nodeR).toFixed(0)+','+(by+eu[1]*nodeR).toFixed(0)+'"/>');
+      var lx=(ax+2*qx+bx)/4, ly=(ay+2*qy+by)/4;
+      var ou=unit(lx-cx, ly-cy);
+      var tlx=lx+ou[0]*22, tly=ly+ou[1]*22;
+      if(text)out.push('<text class="mact" x="'+tlx.toFixed(0)+'" y="'+(tly-6).toFixed(0)+'">'+text+'</text>');
+      out.push('<text class="mp" x="'+tlx.toFixed(0)+'" y="'+(tly+9).toFixed(0)+'">'+pct+'</text>');
+    });
+    for(var k=0;k<n;k++){
+      out.push('<circle class="mnode" cx="'+pos[k][0].toFixed(0)+'" cy="'+pos[k][1].toFixed(0)+'" r="'+nodeR+'"/>');
+      out.push('<text class="mnlabel" x="'+pos[k][0].toFixed(0)+'" y="'+(pos[k][1]+4).toFixed(0)+'">'+esc(states[k])+'</text>');
+    }
+    var defs='<defs><marker id="'+markerId+'" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">'+
+      '<path d="M0,1 L9,5 L0,9 z" fill="#8b96a5"/></marker></defs>';
+    return '<svg viewBox="0 0 '+W.toFixed(0)+' '+H.toFixed(0)+'" role="img" aria-label="A Markov chain drawn from a TE-supplied matrix">'+defs+out.join('\n')+'</svg>';
+  }
+
+  function initMatrixTool(root, instanceId){
+    var markerId='mah-'+instanceId;
+    var statesInput=root.querySelector('.mstates');
+    var table=root.querySelector('.mmatrix');
+    var warnOut=root.querySelector('.mwarnout');
+    var drawing=root.querySelector('.mdrawing');
+    var cells=[];   // 2D array of <input> refs for THIS instance; rebuilt on states edit
+
+    // Grow a cell to whatever it holds: one transition is one line, three is more.
+    function fit(a){
+      a.style.height='auto';
+      a.style.height=Math.max(34, a.scrollHeight+2)+'px';
+    }
+
+    function buildMatrixTable(states, matrix){
+      var n=states.length, toFit=[];
+      table.innerHTML='';
+      cells=[];
+      var thead=document.createElement('tr');
+      thead.appendChild(document.createElement('th'));
+      states.forEach(function(s){var th=document.createElement('th');th.textContent=s;thead.appendChild(th);});
+      table.appendChild(thead);
+      for(var i=0;i<n;i++){
+        var tr=document.createElement('tr');
+        var rh=document.createElement('th');rh.textContent=states[i];tr.appendChild(rh);
+        var rowCells=[], rowFit=[];
+        for(var j=0;j<n;j++){
+          var td=document.createElement('td');
+          if(i===j)td.className='diag';
+          // A textarea rather than an input: a cell may carry two or three transitions
+          // separated by ";", and a single-line field hides all but the first.
+          var inp=document.createElement('textarea');
+          inp.spellcheck=false;inp.rows=2;
+          inp.addEventListener('input',function(){fit(this);});
+          inp.value=(matrix[i]&&matrix[i][j]!=null)?matrix[i][j]:'0';
+          rowFit.push(inp);
+          inp.addEventListener('input',redraw);
+          td.appendChild(inp);tr.appendChild(td);
+          rowCells.push(inp);
+        }
+        cells.push(rowCells);
+        table.appendChild(tr);
+        toFit=toFit.concat(rowFit);
+      }
+      // Sizing has to wait until the rows are in the document, or scrollHeight is 0.
+      toFit.forEach(fit);
+    }
+
+    function readMatrix(){
+      return cells.map(function(row){return row.map(function(inp){return inp.value;});});
+    }
+
+    function redraw(){
+      var states=parseStates(statesInput.value);
+      var n=states.length;
+      var matrix=readMatrix();
+      var edges=[], warns=[];
+      for(var i=0;i<n;i++){
+        var sum=0;
+        for(var j=0;j<n;j++){
+          var list=parseCellList(matrix[i][j]);
+          list.forEach(function(c,k){
+            sum+=c.p;
+            edges.push({a:i,b:j,p:c.p,action:c.action,k:k,kn:list.length});
+          });
+        }
+        if(Math.abs(sum-1)>0.01) warns.push(states[i]+' sums to '+sum.toFixed(3)+', not 1');
+      }
+      warnOut.innerHTML='';
+      if(!warns.length){
+        var li=document.createElement('li');li.className='none';li.textContent='Every row sums to 1.';warnOut.appendChild(li);
+      } else {
+        warns.forEach(function(w){var li=document.createElement('li');li.className='warn';li.textContent=w;warnOut.appendChild(li);});
+      }
+      if(drawing)drawing.innerHTML = n ? drawChain(states, edges, markerId) : '';
+    }
+
+    statesInput.addEventListener('input', function(){
+      var states=parseStates(statesInput.value);
+      var n=states.length, old=readMatrix();
+      var matrix=[];
+      for(var i=0;i<n;i++){
+        var row=[];
+        for(var j=0;j<n;j++) row.push((old[i]&&old[i][j]!=null)?old[i][j]:'0');
+        matrix.push(row);
+      }
+      buildMatrixTable(states, matrix);
+      redraw();
+    });
+
+    // The planner hands each component its own chain on the element; the two standalone
+    // tools on the page have none and fall back to the worked example.
+    var seed=root.mSeed||{states:DEFAULT_STATES,matrix:DEFAULT_MATRIX};
+    buildMatrixTable(seed.states, seed.matrix);
+    redraw();
+  }
+
+  var n=0;
+  function initAll(){
+    document.querySelectorAll('.mtool:not([data-mready])').forEach(function(el){
+      el.setAttribute('data-mready','1');
+      initMatrixTool(el, n++);
+    });
+  }
+  window.initMatrixTools=initAll;   // the planner adds tools after this script has run
+  initAll();
+})();
+</script>
+
+<!-- Mermaid: the Artifact host renders <pre class="mermaid"> natively, a local browser does not.
+     Loaded from docs/vendor/ so the diagrams work offline; the CDN is only a fallback for
+     when this file is copied somewhere without its vendor/ folder. -->
+<script src="vendor/mermaid-11.4.1.min.js"></script>
+<script>window.mermaid||document.write('<script src="https://cdn.jsdelivr.net/npm/mermaid@11.4.1/dist/mermaid.min.js"><\/script>');</script>
+<script>
+(function(){
+  if(!window.mermaid)return;
+  var root=document.documentElement, t=root.getAttribute('data-theme');
+  var dark=t==='dark'||(t!=='light'&&window.matchMedia&&matchMedia('(prefers-color-scheme: dark)').matches);
+  mermaid.initialize({
+    startOnLoad:false,
+    securityLevel:'strict',
+    theme:dark?'dark':'neutral',
+    fontFamily:"'IBM Plex Mono', ui-monospace, Menlo, monospace",
+    flowchart:{htmlLabels:true, wrappingWidth:220}
+  });
+  // Skip anything a host renderer already processed.
+  mermaid.run({querySelector:'pre.mermaid:not([data-processed])'});
+})();
+</script>
+</body>
+</html>

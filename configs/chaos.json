@@ -1,0 +1,76 @@
+{
+  "sessionId": "CHAOS-003",
+  "description": "State-led walk under a heavy fault clock \u2014 the chaos run: realistic paths, perturbed on a schedule, measured against the chain's own steady state.",
+  "durationMs": 86400000,
+  "walk": [
+    {
+      "workerId": "wifi-worker",
+      "component": "wifi",
+      "avgIntervalMs": 90000
+    },
+    {
+      "workerId": "bt-worker",
+      "component": "bt",
+      "avgIntervalMs": 90000
+    },
+    {
+      "workerId": "matter-worker",
+      "component": "matter",
+      "avgIntervalMs": 180000
+    }
+  ],
+  "faults": [
+    {
+      "actionName": "inject_router_reboot",
+      "atMs": 1800000
+    },
+    {
+      "actionName": "inject_wifi_drop",
+      "atMs": 3600000
+    },
+    {
+      "actionName": "inject_internet_down",
+      "atMs": 5400000
+    },
+    {
+      "actionName": "inject_phone_disconnect",
+      "atMs": 7200000
+    },
+    {
+      "actionName": "inject_phone_reboot",
+      "atMs": 9000000
+    },
+    {
+      "actionName": "inject_dhcp_timeout",
+      "atMs": 10800000
+    },
+    {
+      "actionName": "inject_ap_psk_changed",
+      "atMs": 12600000
+    },
+    {
+      "actionName": "inject_phone_out_of_range",
+      "atMs": 14400000
+    },
+    {
+      "actionName": "inject_matter_controller_reject",
+      "atMs": 16200000
+    },
+    {
+      "actionName": "inject_cpu_stress",
+      "atMs": 18000000
+    },
+    {
+      "actionName": "inject_memory_stress",
+      "atMs": 19800000
+    },
+    {
+      "actionName": "clear_system_stress",
+      "atMs": 21600000
+    },
+    {
+      "actionName": "inject_power_reboot",
+      "atMs": 23400000
+    }
+  ]
+}

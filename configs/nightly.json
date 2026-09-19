@@ -1,0 +1,47 @@
+{
+  "sessionId": "NIGHTLY-014",
+  "durationMs": 28800000,
+  "walk": [
+    {
+      "workerId": "wifi-worker",
+      "component": "wifi",
+      "avgIntervalMs": 120000
+    },
+    {
+      "workerId": "bt-worker",
+      "component": "bt",
+      "avgIntervalMs": 120000
+    },
+    {
+      "workerId": "matter-worker",
+      "component": "matter",
+      "avgIntervalMs": 240000
+    }
+  ],
+  "faults": [
+    {
+      "actionName": "inject_dhcp_timeout",
+      "atMs": 600000
+    },
+    {
+      "actionName": "inject_router_reboot",
+      "atMs": 1800000
+    },
+    {
+      "actionName": "inject_phone_out_of_range",
+      "atMs": 3000000
+    },
+    {
+      "actionName": "inject_ap_psk_changed",
+      "atMs": 3600000
+    },
+    {
+      "actionName": "inject_matter_controller_reject",
+      "atMs": 5400000
+    },
+    {
+      "actionName": "inject_power_reboot",
+      "atMs": 7200000
+    }
+  ]
+}

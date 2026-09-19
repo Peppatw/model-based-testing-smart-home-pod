@@ -1,0 +1,42 @@
+{
+  "sessionId": "MIXED-002",
+  "description": "Both kinds at once: wifi and bt walk their chains while a matter probe fires at whatever state it finds, with faults on the clock throughout.",
+  "durationMs": 28800000,
+  "walk": [
+    {
+      "workerId": "wifi-worker",
+      "component": "wifi",
+      "avgIntervalMs": 120000
+    },
+    {
+      "workerId": "bt-worker",
+      "component": "bt",
+      "avgIntervalMs": 120000
+    }
+  ],
+  "probe": [
+    {
+      "workerId": "matter-probe",
+      "component": "matter",
+      "avgIntervalMs": 90000
+    }
+  ],
+  "faults": [
+    {
+      "actionName": "inject_wifi_drop",
+      "atMs": 1200000
+    },
+    {
+      "actionName": "inject_dhcp_timeout",
+      "atMs": 2400000
+    },
+    {
+      "actionName": "inject_matter_controller_reject",
+      "atMs": 3600000
+    },
+    {
+      "actionName": "inject_power_reboot",
+      "atMs": 5400000
+    }
+  ]
+}

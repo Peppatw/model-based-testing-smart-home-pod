@@ -1,0 +1,11 @@
+{
+  "sessionId": "FUZZ-001",
+  "description": "Pure fuzz: four workers calling as fast as the engine allows, with no regard for what state the device is in. Nothing here is a mode switch — a probe already fires without consulting the flow, so this is the same worker kind with the pacing floored and every component under pressure at once. The oracle still runs; this plan is not read for its findings but for whether the device is still answering at the end.",
+  "durationMs": 3600000,
+  "probe": [
+    { "workerId": "fuzz-wifi",   "component": "wifi",   "avgIntervalMs": 1000 },
+    { "workerId": "fuzz-bt",     "component": "bt",     "avgIntervalMs": 1000 },
+    { "workerId": "fuzz-matter", "component": "matter", "avgIntervalMs": 1000 },
+    { "workerId": "fuzz-system", "component": "system", "avgIntervalMs": 1000 }
+  ]
+}

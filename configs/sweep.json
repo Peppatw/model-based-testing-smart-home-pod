@@ -1,0 +1,10 @@
+{
+  "sessionId": "SWEEP-001",
+  "description": "Every state x action cell, in the fewest calls. Inside a state a sweep issues only what it has not issued there yet; when that list empties it hands the turn to the chain, which unlike a random draw is guaranteed to pick an action that moves. Off the flow to cover a state, on the flow to leave it.",
+  "durationMs": 28800000,
+  "sweep": [
+    { "workerId": "wifi-sweep",   "component": "wifi",   "avgIntervalMs": 120000 },
+    { "workerId": "bt-sweep",     "component": "bt",     "avgIntervalMs": 120000 },
+    { "workerId": "matter-sweep", "component": "matter", "avgIntervalMs": 120000 }
+  ]
+}
