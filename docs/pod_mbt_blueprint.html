@@ -75,7 +75,10 @@
   .nav-mark{
     font-family:var(--font-mono);font-size:12px;letter-spacing:.04em;
     color:var(--ink-muted);white-space:nowrap;flex:none;
+    text-decoration:none;border-bottom:1px solid transparent;
   }
+  .nav-mark:hover{color:var(--ink);border-bottom-color:var(--accent);}
+  .nav-mark:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
   .nav-links{display:flex;gap:16px;flex:none;}
   .nav-links a{
     font-family:var(--font-mono);font-size:12.5px;letter-spacing:.02em;
@@ -494,7 +497,7 @@
 
 <nav class="nav">
   <div class="nav-inner">
-    <span class="nav-mark">POD-MBT / REV.A</span>
+    <a class="nav-mark" href="https://github.com/Peppatw/model-based-testing-smart-home-pod">POD-MBT / REV.A</a>
     <div class="nav-links">
       <a href="#why">Why MBT</a>
       <a href="#example">Test Case</a>
@@ -1267,7 +1270,11 @@ per component    wifi 2,634   bt 2,645   matter 2,650   system 2,629</pre>
     <p><code>README.md</code> — how to run any of it, and which file holds what.</p>
   </div>
 
-  <footer>POD-MBT BLUEPRINT — SHEETS 01–09 — FOR REVIEW</footer>
+  <footer>POD-MBT BLUEPRINT — SHEETS 01–09 — FOR REVIEW<br>
+    <span style="font-size:.92em">Every figure on these sheets came out of a run. The code that
+    produced them, and the test suite that keeps them honest:
+    <a href="https://github.com/Peppatw/model-based-testing-smart-home-pod" style="color:var(--accent)">github.com/Peppatw/model-based-testing-smart-home-pod</a></span>
+  </footer>
 
 </div>
 
