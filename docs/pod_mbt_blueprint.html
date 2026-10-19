@@ -497,7 +497,7 @@
 
 <nav class="nav">
   <div class="nav-inner">
-    <a class="nav-mark" href="https://github.com/Peppatw/model-based-testing-smart-home-pod">POD-MBT / REV.A</a>
+    <a class="nav-mark" href="https://github.com/Peppatw/model-based-testing-smart-home-pod">POD-MBT</a>
     <div class="nav-links">
       <a href="#why">Why MBT</a>
       <a href="#example">Test Case</a>
@@ -636,105 +636,10 @@
     <figure class="plate">
       <div class="plate-frame">
 <div class="f1">
-<svg viewBox="-55 15 1115 1160" role="img" aria-label="Four circles in a 2x2 grid: wifi and bt on top, matter and fault injection below"><defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="#8b96a5"/></marker></defs><text class="lane" x="205" y="77" text-anchor="middle">WIFI</text>
-<path class="edge" d="M210,190 Q227,267 285,320"/>
-<text class="act" x="264" y="239">connect_wifi</text><text class="p" x="264" y="251">0.70</text>
-<path class="edge" d="M217,139 Q205,89 193,139"/>
-<text class="act" x="211" y="87">wrong_psk (refused)</text><text class="p" x="211" y="99">0.30</text>
-<path class="edge" d="M280,330 Q205,306 130,330"/>
-<text class="act" x="187" y="352">streaming_uplink</text><text class="p" x="187" y="364">0.70</text>
-<path class="edge" d="M299,312 Q283,235 224,182"/>
-<text class="act" x="286" y="213">disconnect_wifi</text><text class="p" x="286" y="225">0.30</text>
-<path class="edge" d="M125,320 Q183,267 200,190"/>
-<text class="act" x="140" y="249">disconnect_wifi</text><text class="p" x="140" y="261">0.40</text>
-<path class="edge" d="M77,340 Q40,376 89,361"/>
-<text class="act" x="35" y="371">streaming_downlink</text><text class="p" x="35" y="383">0.60</text>
-<circle class="node" cx="205" cy="165" r="26"/><text class="nlabel" x="205" y="169" style="font-size:10px">Disconnected</text>
-<circle class="node" cx="305" cy="338" r="26"/><text class="nlabel" x="305" y="342" style="font-size:10px">Connected</text>
-<circle class="node" cx="105" cy="338" r="26"/><text class="nlabel" x="105" y="342" style="font-size:10px">Streaming</text><text class="lane" x="715" y="42" text-anchor="middle">BT</text>
-<path class="edge" d="M730,152 Q768,208 833,226"/>
-<text class="act" x="790" y="167">bt_pairing</text><text class="p" x="790" y="179">0.80</text>
-<path class="edge" d="M727,104 Q715,54 703,104"/>
-<text class="act" x="721" y="52">no_peer (refused)</text><text class="p" x="721" y="64">0.20</text>
-<path class="edge" d="M842,254 Q800,308 802,375"/>
-<text class="act" x="838" y="339">bt_connect</text><text class="p" x="838" y="351">0.70</text>
-<path class="edge" d="M886,237 Q930,210 879,214"/>
-<text class="act" x="926" y="192">wrong_device_name (refused)</text><text class="p" x="926" y="204">0.30</text>
-<path class="edge" d="M786,382 Q707,292 596,244"/>
-<text class="act" x="684" y="332">bt_audio_streaming</text><text class="p" x="684" y="344">0.50</text>
-<path class="edge" d="M779,392 Q715,369 651,392"/>
-<text class="act" x="709" y="415">bt_disconnect</text><text class="p" x="709" y="427">0.30</text>
-<path class="edge" d="M801,375 Q790,256 728,152"/>
-<text class="act" x="808" y="269">bt_unpair</text><text class="p" x="808" y="281">0.20</text>
-<path class="edge" d="M651,410 Q715,433 779,410"/>
-<text class="act" x="733" y="447">bt_connect</text><text class="p" x="733" y="459">0.60</text>
-<path class="edge" d="M640,379 Q701,276 713,156"/>
-<text class="act" x="656" y="267">bt_unpair</text><text class="p" x="656" y="279">0.40</text>
-<path class="edge" d="M571,260 Q569,327 611,381"/>
-<text class="act" x="554" y="326">bt_disconnect</text><text class="p" x="554" y="338">0.70</text>
-<path class="edge" d="M551,214 Q500,210 544,237"/>
-<text class="act" x="504" y="192">restart streaming</text><text class="p" x="504" y="204">0.30</text>
-<circle class="node" cx="715" cy="130" r="26"/><text class="nlabel" x="715" y="134" style="font-size:10px">Unpaired</text>
-<circle class="node" cx="858" cy="234" r="26"/><text class="nlabel" x="858" y="238" style="font-size:10px">Pairing</text>
-<circle class="node" cx="803" cy="401" r="26"/><text class="nlabel" x="803" y="405" style="font-size:10px">Connected</text>
-<circle class="node" cx="627" cy="401" r="26"/><text class="nlabel" x="627" y="405" style="font-size:10px">Disconnected</text>
-<circle class="node" cx="572" cy="234" r="26"/><text class="nlabel" x="572" y="238" style="font-size:10px">Streaming</text><text class="lane" x="205" y="587" text-anchor="middle">MATTER</text>
-<path class="edge" d="M211,700 Q231,785 294,845"/>
-<text class="act" x="268" y="757">start_matter</text><text class="p" x="268" y="769">0.70</text>
-<path class="edge" d="M217,649 Q205,599 193,649"/>
-<text class="act" x="211" y="597">wrong_setup_code (refused)</text><text class="p" x="211" y="609">0.30</text>
-<path class="edge" d="M288,855 Q205,830 122,855"/>
-<text class="act" x="187" y="876">complete_commissioning</text><text class="p" x="187" y="888">1.00</text>
-<path class="edge" d="M116,845 Q179,785 199,700"/>
-<text class="act" x="130" y="777">remove_fabric</text><text class="p" x="130" y="789">0.50</text>
-<path class="edge" d="M68,865 Q31,900 80,886"/>
-<text class="act" x="32" y="907">start_matter (refused)</text><text class="p" x="32" y="919">0.50</text>
-<circle class="node" cx="205" cy="675" r="26"/><text class="nlabel" x="205" y="679" style="font-size:10px">Uncommissioned</text>
-<circle class="node" cx="313" cy="862" r="26"/><text class="nlabel" x="313" y="866" style="font-size:10px">Commissioning</text>
-<circle class="node" cx="97" cy="862" r="26"/><text class="nlabel" x="97" y="866" style="font-size:10px">Commissioned</text><text class="lane" x="715" y="550" text-anchor="middle" style="fill:var(--accent,#f0a446)">FAULT INJECT — fires on the DUT</text>
-<circle class="dut" cx="715" cy="800" r="24"/><text class="dutlabel" x="715" y="804" style="font-size:10px">DUT</text>
-<line class="faultspoke" x1="715" y1="776" x2="715" y2="628"/>
-<circle class="faultnode" cx="715" cy="628" r="3.5"/>
-<text class="factring" x="715" y="594" text-anchor="middle" style="font-size:8.5px">inject_wifi_drop</text>
-<line class="faultspoke" x1="726" y1="779" x2="795" y2="648"/>
-<circle class="faultnode" cx="795" cy="648" r="3.5"/>
-<text class="factring" x="826" y="589" text-anchor="start" style="font-size:8.5px">inject_router_reboot</text>
-<line class="faultspoke" x1="735" y1="786" x2="857" y2="702"/>
-<circle class="faultnode" cx="857" cy="702" r="3.5"/>
-<text class="factring" x="885" y="683" text-anchor="start" style="font-size:8.5px">inject_internet_down</text>
-<line class="faultspoke" x1="739" y1="797" x2="886" y2="779"/>
-<circle class="faultnode" cx="886" cy="779" r="3.5"/>
-<text class="factring" x="951" y="771" text-anchor="start" style="font-size:8.5px">inject_dhcp_timeout</text>
-<line class="faultspoke" x1="737" y1="809" x2="876" y2="861"/>
-<circle class="faultnode" cx="876" cy="861" r="3.5"/>
-<text class="factring" x="908" y="873" text-anchor="start" style="font-size:8.5px">inject_ap_ssid_changed</text>
-<line class="faultspoke" x1="731" y1="818" x2="829" y2="929"/>
-<circle class="faultnode" cx="829" cy="929" r="3.5"/>
-<text class="factring" x="873" y="978" text-anchor="start" style="font-size:8.5px">inject_phone_disconnected</text>
-<line class="faultspoke" x1="721" y1="823" x2="756" y2="967"/>
-<circle class="faultnode" cx="756" cy="967" r="3.5"/>
-<text class="factring" x="764" y="1000" text-anchor="middle" style="font-size:8.5px">inject_phone_out_of_range</text>
-<line class="faultspoke" x1="709" y1="823" x2="674" y2="967"/>
-<circle class="faultnode" cx="674" cy="967" r="3.5"/>
-<text class="factring" x="658" y="1031" text-anchor="middle" style="font-size:8.5px">inject_phone_reboot</text>
-<line class="faultspoke" x1="699" y1="818" x2="601" y2="929"/>
-<circle class="faultnode" cx="601" cy="929" r="3.5"/>
-<text class="factring" x="578" y="954" text-anchor="end" style="font-size:8.5px">inject_matter_controller_reject</text>
-<line class="faultspoke" x1="693" y1="809" x2="554" y2="861"/>
-<circle class="faultnode" cx="554" cy="861" r="3.5"/>
-<text class="factring" x="492" y="884" text-anchor="end" style="font-size:8.5px">inject_cpu_stress</text>
-<line class="faultspoke" x1="691" y1="797" x2="544" y2="779"/>
-<circle class="faultnode" cx="544" cy="779" r="3.5"/>
-<text class="factring" x="511" y="775" text-anchor="end" style="font-size:8.5px">inject_memory_stress</text>
-<line class="faultspoke" x1="695" y1="786" x2="573" y2="702"/>
-<circle class="faultnode" cx="573" cy="702" r="3.5"/>
-<text class="factring" x="519" y="665" text-anchor="end" style="font-size:8.5px">clear_system_stress</text>
-<line class="faultspoke" x1="704" y1="779" x2="635" y2="648"/>
-<circle class="faultnode" cx="635" cy="648" r="3.5"/>
-<text class="factring" x="619" y="618" text-anchor="end" style="font-size:8.5px">inject_power_reboot</text></svg>
+<svg viewBox="-90 -22 1210 1230" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="The wifi, bt, matter chains as rings of states with their transitions and probabilities, each with the faults the device inflicts on itself arriving at its own ring; the system conditions as levels with no transitions; and 11 actions an external rig fires at the test environment in a band below."><defs><marker id="tcah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,1 L9,5 L0,9 z" fill="var(--ink-muted)"/></marker></defs><text x="205" y="77" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-muted)" font-family="var(--font-display)" letter-spacing="0.9">WIFI</text><path d="M210,190 Q227,267 284,320" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="270" y="242" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">connect_wifi</text><text x="270" y="254" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.75</text><path d="M217,139 Q205,89 193,139" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="205" y="71" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">inject_wrong_psk</text><text x="205" y="83" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.25</text><path d="M280,329 Q205,305 131,329" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="206" y="355" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">streaming_uplink</text><text x="206" y="367" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.50</text><path d="M299,312 Q242,259 225,183" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="285" y="235" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">disconnect_wifi</text><text x="285" y="247" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.30</text><path d="M321,361 Q370,376 333,340" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="383" y="386" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">get_ipadd</text><text x="383" y="398" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.20</text><path d="M77,340 Q40,376 89,361" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="27" y="386" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">streaming_downlink</text><text x="27" y="398" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.60</text><path d="M125,320 Q183,268 200,191" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="140" y="243" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">disconnect_wifi</text><text x="140" y="255" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.40</text><line x1="56" y1="128" x2="100" y2="173" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.45" marker-end="url(#tcah)"/><circle cx="56" cy="128" r="3.5" fill="var(--surface-2)" stroke="var(--accent)" stroke-width="1.2" opacity="1"/><text x="44" y="131" text-anchor="end" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">api_inject_wrong_ipaddr</text><circle cx="205" cy="165" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="205" y="169" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Disconnected</text><circle cx="305" cy="338" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="305" y="342" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Connected</text><circle cx="105" cy="338" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="105" y="342" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Streaming</text><text x="715" y="60" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-muted)" font-family="var(--font-display)" letter-spacing="0.9">BT</text><path d="M707,172 Q730,281 706,387" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="681" y="278" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_pairing</text><text x="681" y="290" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.75</text><path d="M727,122 Q715,72 703,122" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="715" y="54" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">inject_no_peer</text><text x="715" y="66" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.25</text><path d="M824,292 Q759,323 727,388" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="794" y="358" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_reconnect</text><text x="794" y="370" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.60</text><path d="M873,292 Q924,280 873,268" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="938" y="283" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">inject_wrong_devicename</text><text x="938" y="295" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.25</text><path d="M836,257 Q771,225 739,159" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="806" y="190" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_unpair</text><text x="806" y="202" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.15</text><path d="M703,389 Q672,324 607,292" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="637" y="359" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_audio_streaming</text><text x="637" y="371" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.65</text><path d="M738,401 Q770,336 836,304" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="805" y="371" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_disconnect</text><text x="805" y="383" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.35</text><path d="M607,288 Q716,265 822,289" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="713" y="314" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_disconnect</text><text x="713" y="326" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.70</text><path d="M557,268 Q506,280 557,292" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="492" y="283" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">bt_audio_streaming</text><text x="492" y="295" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.30</text><circle cx="715" cy="148" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="715" y="152" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Idle</text><circle cx="848" cy="280" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="848" y="284" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Paired</text><circle cx="715" cy="412" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="715" y="412" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Connected</text><text x="715" y="422" text-anchor="middle" font-size="8" fill="var(--ink-muted)" font-family="var(--font-mono)">None</text><circle cx="582" cy="280" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="582" y="279" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Connected</text><text x="582" y="290" text-anchor="middle" font-size="8" fill="var(--ink-muted)" font-family="var(--font-mono)">Streaming</text><text x="205" y="597" text-anchor="middle" font-size="11" font-weight="600" fill="var(--ink-muted)" font-family="var(--font-display)" letter-spacing="0.9">MATTER</text><path d="M210,710 Q227,787 284,840" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="270" y="762" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">start_matter</text><text x="270" y="774" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.80</text><path d="M217,659 Q205,609 193,659" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="205" y="591" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">remove_matter_fabric</text><text x="205" y="603" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.20</text><path d="M280,849 Q205,825 131,849" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="206" y="875" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">complete_matter_commissioning</text><text x="206" y="887" text-anchor="middle" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.65</text><path d="M299,832 Q242,779 225,703" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="285" y="755" text-anchor="start" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">wrong_setup_code</text><text x="285" y="767" text-anchor="start" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.35</text><path d="M125,840 Q183,788 200,711" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="140" y="763" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">remove_matter_fabric</text><text x="140" y="775" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.70</text><path d="M77,860 Q40,896 89,881" fill="none" stroke="var(--ink-muted)" stroke-width="1.3" marker-end="url(#tcah)"/><text x="27" y="906" text-anchor="end" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-mono)">start_matter</text><text x="27" y="918" text-anchor="end" font-size="11" fill="var(--accent)" font-family="var(--font-mono)" font-weight="600">0.30</text><circle cx="205" cy="685" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="205" y="689" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Uncommissioned</text><circle cx="305" cy="858" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="305" y="862" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Commissioning</text><circle cx="105" cy="858" r="26" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.4"/><text x="105" y="862" text-anchor="middle" font-size="9" fill="var(--ink)" font-family="var(--font-mono)" font-weight="600">Operational</text><text x="715" y="562" text-anchor="middle" font-size="11" font-weight="600" fill="var(--accent)" font-family="var(--font-display)" letter-spacing="0.9">FAULT INJECT</text><text x="715" y="578" text-anchor="middle" font-size="9.5" fill="var(--ink-muted)" font-family="var(--font-display)">11 actions an external rig fires &amp;mdash; the hardware this test case needs</text><line x1="715" y1="776" x2="715" y2="628" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="715" cy="628" r="3.5" fill="var(--accent)" opacity="1"/><text x="715" y="604" text-anchor="middle" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_ap_psk_changed</text><line x1="728" y1="780" x2="808" y2="655" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="808" cy="655" r="3.5" fill="var(--accent)" opacity="1"/><text x="817" y="644" text-anchor="start" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_ap_ssid_changed</text><line x1="737" y1="790" x2="871" y2="729" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="871" cy="729" r="3.5" fill="var(--accent)" opacity="1"/><text x="887" y="724" text-anchor="start" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_dhcp_timeout</text><line x1="739" y1="803" x2="885" y2="824" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="885" cy="824" r="3.5" fill="var(--accent)" opacity="1"/><text x="902" y="830" text-anchor="start" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_internet_down</text><line x1="733" y1="816" x2="845" y2="913" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="845" cy="913" r="3.5" fill="var(--accent)" opacity="1"/><text x="858" y="927" text-anchor="start" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_matter_controller_reject</text><line x1="722" y1="823" x2="763" y2="965" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="763" cy="965" r="3.5" fill="var(--accent)" opacity="1"/><text x="768" y="994" text-anchor="middle" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_phone_disconnect</text><line x1="708" y1="823" x2="667" y2="965" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="667" cy="965" r="3.5" fill="var(--accent)" opacity="1"/><text x="662" y="994" text-anchor="middle" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_phone_out_of_range</text><line x1="697" y1="816" x2="585" y2="913" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="585" cy="913" r="3.5" fill="var(--accent)" opacity="1"/><text x="572" y="927" text-anchor="end" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_phone_reboot</text><line x1="691" y1="803" x2="545" y2="824" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="545" cy="824" r="3.5" fill="var(--accent)" opacity="1"/><text x="528" y="830" text-anchor="end" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_power_reboot</text><line x1="693" y1="790" x2="559" y2="729" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="559" cy="729" r="3.5" fill="var(--accent)" opacity="1"/><text x="543" y="724" text-anchor="end" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_router_reboot</text><line x1="702" y1="780" x2="622" y2="655" stroke="var(--accent)" stroke-width="1" stroke-dasharray="2 4" opacity="0.5"/><circle cx="622" cy="655" r="3.5" fill="var(--accent)" opacity="1"/><text x="613" y="644" text-anchor="end" font-size="8.5" fill="var(--ink)" font-family="var(--font-mono)">inject_wifi_drop</text><circle cx="715" cy="800" r="24" fill="var(--accent-soft)" stroke="var(--accent)" stroke-width="1.9"/><text x="715" y="804" text-anchor="middle" font-size="10" fill="var(--accent)" font-family="var(--font-mono)" font-weight="700">RIG</text></svg>
 </div>
       </div>
-      <figcaption><b>TC-01 (test case 01).</b> wifi, bt and matter are Markov chain models — states, and the probability of each transition. <code>FAULT INJECT</code> is not: it has no states or transitions of its own, so every fault action radiates from the DUT itself, with no arrow singling out one chain. A fault lands on the device as a whole — whether <code>inject_router_reboot</code> also disturbs <code>bt</code> or <code>matter</code> is exactly the kind of cross-component question this framework surfaces rather than assumes.</figcaption>
+      <figcaption><b>TC-01 (test case 01).</b> <em>This drawing is generated from <code>pod_mbt.policy.CHAINS</code> by <code>pod_mbt.figure</code>, and <code>tests/test_consistency.py</code> fails if the two disagree &mdash; it used to be authored, and drifted: it drew a five-state Bluetooth chain for months after the code reduced it to three.</em> wifi, bt and matter are Markov chain models — states, and the probability of each transition. <code>FAULT INJECT</code> is not: it has no states or transitions of its own, so the grouping is by who performs the action: what the device does to itself arrives at its own region's ring, FAULT INJECT is the band of actions an external rig fires &mdash; which is also the hardware list this test case needs. A fault lands on the device as a whole — whether <code>inject_router_reboot</code> also disturbs <code>bt</code> or <code>matter</code> is exactly the kind of cross-component question this framework surfaces rather than assumes.</figcaption>
     </figure>
 
     <p class="subhead">What running it looks like</p>
@@ -931,7 +836,7 @@ flowchart LR
     <p class="subhead">From a TE's matrix to a running call</p>
     <p class="claim">A TE only ever writes two things by hand: a matrix — which states, which action moves where, at what probability — and a short list of when a fault should fire. Everything else a call actually needs is looked up by name, out of one shared <code>ActionDatabase</code>, at the moment it's used. TC-01's wifi walk (Slide 01) shows the whole path, end to end.</p>
 
-    <p><b>TE input MakovChain Matrix Table</b></p>
+    <p><b>TE input MarkovChain Matrix Table</b></p>
     <div class="table-scroll">
       <pre class="code-json">states: [Disconnected, Connected, Streaming]
 matrix:
@@ -1080,15 +985,15 @@ unexpected_destination   guard held and postcondition passed, but landed somewhe
     <p class="claim">One probe worker, the same component TC-01 walks. The first calls of the run:</p>
 
     <div class="table-scroll">
-      <pre class="code-json">t+  0m  Disconnected  api_inject_wrong_ipaddr   in the flow    ok
+      <pre class="code-json">t+  0m  Disconnected  api_inject_wrong_ipaddr   off the flow    ok
 t+  3m  Disconnected  inject_ap_psk_changed     off the flow   ok
 t+  5m  Disconnected  inject_router_reboot      off the flow   ok
-t+  8m  Disconnected  api_inject_wrong_ipaddr   in the flow    ok
+t+  8m  Disconnected  api_inject_wrong_ipaddr   off the flow    ok
 t+ 11m  Disconnected  api_disconnect_wifi       off the flow   ok
 t+ 12m  Disconnected  inject_wifi_drop          off the flow   ok
 t+ 14m  Disconnected  api_connect_wifi          in the flow    ok
 t+ 22m  Connected     api_inject_wrong_ipaddr   off the flow   ok
-t+ 24m  Connected     api_get_dhcp              in the flow    ok
+t+ 24m  Connected     api_get_dhcp              off the flow    ok
 t+ 27m  Connected     api_disconnect_wifi       in the flow    ok</pre>
     </div>
 
@@ -1126,9 +1031,9 @@ inject_ap_ssid_changed               3            6             .
       <table class="ref-table">
         <thead><tr><th>Worker</th><th>Transitions</th><th>State &times; action</th></tr></thead>
         <tbody>
-          <tr><td>state-led walk</td><td>9 / 9 (100%)</td><td>9 / 42 (21%)</td></tr>
-          <tr><td>action-led probe</td><td>7 / 9 (78%)</td><td>32 / 42 (76%)</td></tr>
-          <tr><td><b>sweep &mdash; both</b></td><td><b>9 / 9 (100%)</b></td><td><b>42 / 42 (100%)</b></td></tr>
+          <tr><td>state-led walk</td><td>7 / 7 (100%)</td><td>7 / 39 (21%)</td></tr>
+          <tr><td>action-led probe</td><td>5 / 7 (71%)</td><td>36 / 39 (76%)</td></tr>
+          <tr><td><b>sweep &mdash; both</b></td><td><b>7 / 7 (100%)</b></td><td><b>39 / 39 (100%)</b></td></tr>
         </tbody>
       </table>
     </div>
@@ -1270,8 +1175,8 @@ per component    wifi 2,634   bt 2,645   matter 2,650   system 2,629</pre>
     <p><code>README.md</code> — how to run any of it, and which file holds what.</p>
   </div>
 
-  <footer>POD-MBT BLUEPRINT — SHEETS 01–09 — FOR REVIEW<br>
-    <span style="font-size:.92em">Every figure on these sheets came out of a run. The code that
+  <footer>POD-MBT BLUEPRINT — SHEETS 00–08<br>
+    <span style="font-size:.92em">Results on these sheets came out of actual runs. The code that
     produced them, and the test suite that keeps them honest:
     <a href="https://github.com/Peppatw/model-based-testing-smart-home-pod" style="color:var(--accent)">github.com/Peppatw/model-based-testing-smart-home-pod</a></span>
   </footer>

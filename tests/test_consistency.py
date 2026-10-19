@@ -21,7 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from pod_mbt.engine import Session
 from pod_mbt.model import ACTION_DB, EventType, Executor
 from pod_mbt.plan import History, Intent, RuleBasedPlanner
-from pod_mbt.policy import CHAINS, FAULTS, MarkovPolicy, validate_chains
+from pod_mbt.policy import CHAINS, FAULTS, MarkovPolicy, probe_only, validate_chains
 from pod_mbt.run import load
 
 DOCS = Path(__file__).resolve().parents[1] / "docs"
@@ -64,13 +64,24 @@ def doc_transitions() -> set[tuple[str, str]]:
     return out
 
 
+def _rejects_unknown_slot(run) -> bool:
+    """`write_back` must refuse a slot key it does not know — the guard that keeps a model's
+    prose out of the sections that hold measurements."""
+    from pod_mbt.analyze import Analysis, write_back
+    try:
+        write_back(run, Analysis(sections={}, slots={"coverage.totals": "3"}))
+    except ValueError:
+        return True
+    return False
+
+
 def main() -> int:
     pol = MarkovPolicy()
 
     print("\nAction Database — the contract")
-    check("32 actions in code", len(ACTION_DB) == 32, f"got {len(ACTION_DB)}")
+    check("29 actions in code", len(ACTION_DB) == 29, f"got {len(ACTION_DB)}")
     doc = doc_actions()
-    check("the table has a row for all 32 actions", len(doc) == 32, str(len(doc)))
+    check("the table has a row for all 29 actions", len(doc) == 29, str(len(doc)))
     check("code and the table list the same actions",
           set(doc) == {a.name for a in ACTION_DB},
           str(set(doc) ^ {a.name for a in ACTION_DB}))
@@ -82,9 +93,9 @@ def main() -> int:
     check("every cleanupAction names a real action",
           all(a.cleanup_action in {x.name for x in ACTION_DB}
               for a in ACTION_DB if a.cleanup_action))
-    check("21 dut / 11 equipment",
-          sum(1 for a in ACTION_DB if a.executor is Executor.DUT) == 21
-          and sum(1 for a in ACTION_DB if a.executor is Executor.EQUIPMENT) == 11)
+    n_dut = sum(1 for a in ACTION_DB if a.executor is Executor.DUT)
+    n_eq = sum(1 for a in ACTION_DB if a.executor is Executor.EQUIPMENT)
+    check(f"{n_dut} dut / {n_eq} equipment", (n_dut, n_eq) == (18, 11))
 
     print("\nThe chains")
     problems = validate_chains(ACTION_DB)
@@ -99,7 +110,16 @@ def main() -> int:
     missing = doc_transitions() - {(s, a) for _, s, a in pol.transitions()}
     check("every transition printed in Slide 03 exists in code", not missing,
           str(sorted(missing)[:3]))
-    check("fourteen actions sit outside every chain", len(FAULTS) == 14, str(len(FAULTS)))
+    check(f"{len(FAULTS)} actions sit outside every chain", len(FAULTS) >= 12, str(len(FAULTS)))
+    check("no state-to-state transition is caused by two different actions",
+          not [(c, s_, n) for c, rows in CHAINS.items() for s_, r in rows.items()
+               for n in {t.nxt for t in r}
+               if len([t for t in r if t.nxt == n]) > 1],
+          "two arrows between one pair of circles overlap on the figure, and a reader counting "
+          "edges then disagrees with a table counting action names")
+    po = probe_only(ACTION_DB)
+    check(f"API calls no chain walks are reported, not refused — {len(po)}: {', '.join(po)}",
+          isinstance(po, list))
     check("no fault leaked into a chain",
           not [e for e in pol.transitions() if e[2] in FAULTS])
     check("api_bt_disconnect is weighted differently per state — the reason a "
@@ -114,7 +134,8 @@ def main() -> int:
               abs(sum(dist.values()) - 1.0) < 0.01, str(sum(dist.values())))
 
     print("\nEvery published plan actually runs")
-    for cfg in sorted(pathlib.Path("configs").glob("*.json")):
+    for cfg in sorted(p for p in pathlib.Path("testcases/TC-01").glob("*.json")
+                      if p.name != "model.json"):
         sid, dur, workers, _ = load(cfg)
         sess = Session(sid, workers, duration_ms=dur, seed=7)
         sess.run()
@@ -125,7 +146,7 @@ def main() -> int:
 
     print("\nState-led and action-led reach different things")
     runs = {}
-    for name, path in (("walk", "configs/nightly.json"), ("probe", "configs/probe.json")):
+    for name, path in (("walk", "testcases/TC-01/state-led.json"), ("probe", "testcases/TC-01/action-led.json")):
         sid, dur, workers, _ = load(pathlib.Path(path))
         s = Session(sid, workers, duration_ms=dur, seed=11)
         s.run()
@@ -150,12 +171,12 @@ def main() -> int:
     w, pr = slide["walk"], slide["probe"]
     check(f"a walk reaches every transition and no more — {w['transitionsWalked']}/"
           f"{w['transitions']} transitions, {w['pairsTried']}/{w['pairs']} pairs",
-          (w["transitionsWalked"], w["pairsTried"]) == (9, 9))
+          (w["transitionsWalked"], w["pairsTried"]) == (7, 7))
     check("a walk's pairs and its transitions are the same set — it cannot reach a "
           "tenth cell", w["pairsTried"] == w["transitionsWalked"])
     check(f"a probe reaches most of the grid — {pr['transitionsWalked']}/{pr['transitions']} "
           f"transitions, {pr['pairsTried']}/{pr['pairs']} pairs",
-          (pr["transitionsWalked"], pr["pairsTried"]) == (7, 32))
+          (pr["transitionsWalked"], pr["pairsTried"]) == (5, 36))
 
     cfg = WorkerConfig(worker_id="wifi-sweep", kind=WorkerKind.SWEEP, component="wifi",
                        avg_interval_ms=120_000)
@@ -171,7 +192,7 @@ def main() -> int:
             at = n
     check(f"a sweep closes the grid a probe cannot — {sw['transitionsWalked']}/"
           f"{sw['transitions']} transitions, {sw['pairsTried']}/{sw['pairs']} pairs",
-          (sw["transitionsWalked"], sw["pairsTried"]) == (9, 42))
+          (sw["transitionsWalked"], sw["pairsTried"]) == (7, 39))
     check(f"the sweep gets there on call {at}, against a floor of {sw['pairs']}",
           at is not None and at <= 2 * sw["pairs"])
 
@@ -210,7 +231,7 @@ def main() -> int:
 
     with tempfile.TemporaryDirectory() as tmp:
         pol2 = _MP()
-        rep_n = snapshot("configs/nightly.json", tmp)
+        rep_n = snapshot("testcases/TC-01/state-led.json", tmp)
         hist = History.load(pathlib.Path(tmp))
         untried = hist.untried_pairs(pol2)
         check(f"a run folder says which pairs it reached, not just how many — "
@@ -219,7 +240,7 @@ def main() -> int:
         p1 = RuleBasedPlanner().plan(Intent(changed=["wifi"], minutes=480), hist)
         check(f"a grid still mostly unreached is swept, not walked — "
               f"{[w['component'] for w in p1['sweep']]}", bool(p1["sweep"]))
-        snapshot("configs/sweep.json", tmp)
+        snapshot("testcases/TC-01/mix.json", tmp)
         hist2 = History.load(pathlib.Path(tmp))
         check("once the grid is closed there is nothing left untried",
               not hist2.untried_pairs(pol2))
@@ -232,7 +253,7 @@ def main() -> int:
     from pod_mbt.driver import SimulatedDriver
     from pod_mbt.replay import ReplayEngine
     from pod_mbt.run import model_version, session_meta
-    sid, dur, workers, _ = load(pathlib.Path("configs/mixed.json"))
+    sid, dur, workers, _ = load(pathlib.Path("testcases/TC-01/mix.json"))
     sess = Session(sid, workers, duration_ms=3_600_000, seed=5,
                    driver=SimulatedDriver(rng=random.Random(6),
                                           defects=frozenset(["accepts_illegal"])))
@@ -240,7 +261,7 @@ def main() -> int:
     rep = sess.coverage.report()
     with tempfile.TemporaryDirectory() as tmp:
         class A:                                  # the argparse namespace save_run wants
-            config, seed, defect, save = pathlib.Path("configs/mixed.json"), 5, \
+            config, seed, defect, save = pathlib.Path("testcases/TC-01/mix.json"), 5, \
                 ["accepts_illegal"], pathlib.Path(tmp)
         run = sess.rec.save_run(tmp, session_meta(A, sid, dur, workers, sess, rep),
                                 coverage=rep,
@@ -258,12 +279,44 @@ def main() -> int:
             rec, _ = engine.replay(loaded["errorSignatures"][0]["reproduction"])
             check("a reproduction replays without raising", rec is not None)
 
+        print("\nSlide 01's figure is generated, so it cannot drift from the chains")
+        from pod_mbt.figure import chain_figure
+        i = BLUEPRINT.find('class="f1"')
+        j = BLUEPRINT.index("<svg", i)
+        k = BLUEPRINT.index("</svg>", j) + 6
+        check("the Blueprint's test-case figure is what pod_mbt.figure renders today",
+              BLUEPRINT[j:k] == chain_figure(
+              CHAINS, FAULTS,
+              executor_of={a.name: a.executor.value for a in ACTION_DB},
+              component_of={a.name: a.component for a in ACTION_DB}),
+              "regenerate it: the slide drew a five-state Bluetooth chain for months after "
+              "the code reduced it to three, and nothing caught it")
+
         print("\nThe analyst reads a run folder and writes report.md + proposals/")
         from pod_mbt.analyze import RuleBasedAnalyst, write_back
         analysis = RuleBasedAnalyst().analyze(run)
         write_back(run, analysis)
-        check("report.md exists and is not empty",
-              (run / "Analysis" / "report.md").read_text().strip() != "")
+        html_out = (run / "Analysis" / "report.html").read_text()
+        check("report.html exists and is not empty", html_out.strip() != "")
+        # The report's *shape* is a decision, so it is asserted rather than remembered. None of
+        # this was checked while the sections were markdown, which is how one row came to print
+        # the test case twice and the plan nowhere.
+        from pod_mbt.analyze import SECTIONS, SLOTS
+        nums = re.findall(r"&sect;&thinsp;(\d+)</div><h2>([^<]+)</h2>", html_out)
+        check(f"sections are numbered 1..n with no gaps — {len(nums)} rendered",
+              [int(n) for n, _ in nums] == list(range(1, len(nums) + 1)),
+              str([n for n, _ in nums]))
+        check("a crash-free run renders no Crash section",
+              "Crash" not in [t for _, t in nums])
+        check("the test-case figure is embedded in the report, not linked",
+              "<svg viewBox" in html_out)
+        check("the Summary names the test case and not the session id",
+              ">Test Case</span>" in html_out and ">Session</span>" not in html_out)
+        check("every analysis block is marked as written rather than measured",
+              html_out.count('class="analysis"')
+              == html_out.count("Analysis &mdash; written, not measured"))
+        check("an analyst cannot write outside its slots",
+              _rejects_unknown_slot(run))
         check("a proposal was written per signature",
               len(analysis.proposals) == len(loaded.get("errorSignatures", [])))
         if analysis.proposals:

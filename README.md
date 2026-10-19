@@ -16,7 +16,7 @@ is what points it at a real bench.
 Plan a run, then run the plan:
 
 ```bash
-python3 -m pod_mbt.plan --changed wifi --minutes 480 --history runs/ --out next_run.json
+python3 -m pod_mbt.plan --changed wifi --minutes 480 --history test_result/ --out next_run.json
 python3 -m pod_mbt.run next_run.json
 ```
 
@@ -32,20 +32,20 @@ what a result means.
 Or run a config directly:
 
 ```bash
-python3 -m pod_mbt.run configs/nightly.json          # state-led: 3 chains + a fault clock
-python3 -m pod_mbt.run configs/probe.json            # action-led: into the unmodelled space
-python3 -m pod_mbt.run configs/mixed.json            # both kinds in one session
-python3 -m pod_mbt.run configs/sweep.json            # every state x action cell, fewest calls
-python3 -m pod_mbt.run configs/fuzz.json             # no flow, no pacing: does it stay up?
+python3 -m pod_mbt.run testcases/TC-01/state-led.json          # state-led: 3 chains + a fault clock
+python3 -m pod_mbt.run testcases/TC-01/action-led.json            # action-led: into the unmodelled space
+python3 -m pod_mbt.run testcases/TC-01/mix.json            # both kinds in one session
+python3 -m pod_mbt.run testcases/TC-01/mix.json            # every state x action cell, fewest calls
+python3 -m pod_mbt.run testcases/TC-01/pure-fuzzy.json             # no flow, no pacing: does it stay up?
 python3 -m tests.test_consistency                    # does the code still match the docs?
 ```
 
 Find a bug, save it, replay it, verify the fix:
 
 ```bash
-python3 -m pod_mbt.run configs/chaos.json --defect accepts_illegal --save runs/
-python3 -m pod_mbt.replay runs/<stamp>_CHAOS-003 --defect accepts_illegal  # reproduces
-python3 -m pod_mbt.replay runs/<stamp>_CHAOS-003                           # fixed → 0 of N
+python3 -m pod_mbt.run testcases/TC-01/state-led.json --defect accepts_illegal --save test_result/
+python3 -m pod_mbt.replay test_result/<stamp>_CHAOS-003 --defect accepts_illegal  # reproduces
+python3 -m pod_mbt.replay test_result/<stamp>_CHAOS-003                           # fixed → 0 of N
 ```
 
 Nothing to install: standard library only, Python 3.10+.
@@ -63,7 +63,7 @@ Nothing to install: standard library only, Python 3.10+.
 | `pod_mbt/replay.py` | `ReplayEngine` — runs an `ErrorSignature`'s reproduction again |
 | `pod_mbt/analyze.py` | `RuleBasedAnalyst` — reads a finished run, writes `report.md` + proposals |
 | `pod_mbt/run.py` | The CLI: load a config, run the session, save the folder |
-| `configs/` | Session configs, the same shape the Blueprint prints |
+| `testcases/TC-01/` | Session configs, the same shape the Blueprint prints |
 | `tests/` | Code-versus-docs consistency checks |
 
 ## Two things worth knowing before reading the code
@@ -84,8 +84,8 @@ threads.
 ## Seeing the design actually work
 
 ```bash
-python3 -m pod_mbt.run configs/chaos.json                            # clean slide
-python3 -m pod_mbt.run configs/chaos.json --defect accepts_illegal   # findings
+python3 -m pod_mbt.run testcases/TC-01/state-led.json                            # clean slide
+python3 -m pod_mbt.run testcases/TC-01/state-led.json --defect accepts_illegal   # findings
 ```
 
 The first run issues illegal calls on purpose — the guard judges but never gates — and the simulated
@@ -132,11 +132,11 @@ immediately by an assertion that reads the state instead of the reply) and
 | Slide | Code |
 |---|---|
 | 00 Why Model-Based Testing? | argument only — no code |
-| 01 MBT Test Case | `configs/nightly.json`, `pod_mbt/policy.py` |
+| 01 MBT Test Case | `testcases/TC-01/state-led.json`, `pod_mbt/policy.py` |
 | 02 Architecture Overview | the package as a whole |
 | 03 Data Structure | `pod_mbt/model.py`, `pod_mbt/policy.py` |
 | 04 Runtime Flow | `pod_mbt/engine.py` |
 | 05 What AI Does Here | `pod_mbt/record.py`, `pod_mbt/analyze.py` |
 | 06 Action-Led Test | `WorkerKind.PROBE` and `WorkerKind.SWEEP` in `pod_mbt/engine.py` |
-| 07 Pure Fuzz Test | `configs/fuzz.json` |
+| 07 Pure Fuzz Test | `testcases/TC-01/pure-fuzzy.json` |
 | 08 Run Planner | `pod_mbt/plan.py` |

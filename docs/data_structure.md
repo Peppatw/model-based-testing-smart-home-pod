@@ -108,10 +108,10 @@ Three orthogonal labels on <code>ActionDefinition</code>, and keeping them ortho
 <table class="ref-table">
         <thead><tr><th>component</th><th><code>executor = dut</code></th><th><code>executor = equipment</code></th></tr></thead>
         <tbody>
-          <tr><td>wifi</td><td><code>api_connect_wifi</code>, <code>api_disconnect_wifi</code>, <code>api_get_dhcp</code>, <code>api_get_ipadd</code>, <code>api_streaming_uplink</code>, <code>api_streaming_downlink</code>, <b><code>api_inject_wrong_psk</code></b>, <b><code>api_inject_wrong_ipaddr</code></b></td><td><code>inject_wifi_drop</code>, <code>inject_router_reboot</code>, <code>inject_internet_down</code>, <code>inject_dhcp_timeout</code>, <code>inject_ap_psk_changed</code>, <code>inject_ap_ssid_changed</code></td></tr>
-          <tr><td>bt</td><td><code>api_bt_pairing</code>, <code>api_bt_connect</code>, <code>api_bt_disconnect</code>, <code>api_bt_audio_streaming</code>, <b><code>api_inject_wrong_devicename</code></b>, <b><code>api_inject_no_peer</code></b></td><td><code>inject_phone_disconnect</code>, <code>inject_phone_out_of_range</code>, <code>inject_phone_reboot</code></td></tr>
-          <tr><td>matter</td><td><code>api_start_matter</code>, <code>api_complete_matter_commissioning</code>, <code>api_remove_matter_fabric</code>, <b><code>inject_wrong_setup_code</code></b></td><td><code>inject_matter_controller_reject</code></td></tr>
-          <tr><td>system</td><td><b><code>inject_cpu_stress</code></b>, <b><code>inject_memory_stress</code></b>, <b><code>clear_system_stress</code></b></td><td><code>inject_power_reboot</code></td></tr>
+          <tr><td>wifi</td><td><code>api_connect_wifi</code>, <code>api_disconnect_wifi</code>, <code>api_get_ipadd</code>, <b><code>api_inject_wrong_ipaddr</code></b>, <b><code>api_inject_wrong_psk</code></b>, <code>api_streaming_downlink</code>, <code>api_streaming_uplink</code></td><td><b><code>inject_ap_psk_changed</code></b>, <b><code>inject_ap_ssid_changed</code></b>, <b><code>inject_dhcp_timeout</code></b>, <b><code>inject_internet_down</code></b>, <b><code>inject_router_reboot</code></b>, <b><code>inject_wifi_drop</code></b></td></tr>
+          <tr><td>bt</td><td><code>api_bt_audio_streaming</code>, <code>api_bt_disconnect</code>, <code>api_bt_pairing</code>, <code>api_bt_reconnect</code>, <code>api_bt_unpair</code>, <b><code>api_inject_no_peer</code></b>, <b><code>api_inject_wrong_devicename</code></b></td><td><b><code>inject_phone_disconnect</code></b>, <b><code>inject_phone_out_of_range</code></b>, <b><code>inject_phone_reboot</code></b></td></tr>
+          <tr><td>matter</td><td><code>api_complete_matter_commissioning</code>, <code>api_remove_matter_fabric</code>, <code>api_start_matter</code>, <b><code>inject_wrong_setup_code</code></b></td><td><b><code>inject_matter_controller_reject</code></b></td></tr>
+          <tr><td>system</td><td>&mdash;</td><td><b><code>inject_power_reboot</code></b></td></tr>
         </tbody>
       </table>
 
@@ -127,7 +127,7 @@ Three orthogonal labels on <code>ActionDefinition</code>, and keeping them ortho
 - <code>NetworkUplink</code> models the home router / internet condition, but stays off <code>CompositeState</code> on purpose — folding an external dependency into the coverage tuple is how state explosion comes back. Router and phone conditions live in the Action Database instead, as <code>fault_injection</code> actions — note they carry <code>component: wifi</code> and <code>component: bt</code>, <b>not</b> a component of their own. An earlier draft gave them <code>network_infra</code> / <code>bt_peer</code>, which was a mistake: <code>component</code> answers "which <code>CompositeState</code> region does this move," and a router reboot moves the <em>Wi-Fi</em> region. What made router and phone feel like separate components was really <em>who performs the action</em> — now <code>executor = equipment</code>, on its own axis.
 - <code>guard</code> is a precondition — it blocks an illegal call before it runs. The new <code>postcondition</code> field is checked after: a call can pass its guard, run cleanly, and still land the Pod in a state that's wrong (<code>Connected</code> with no valid IP). That's what <code>oracle_result</code> catches.
 - <code>postconditionTimeoutMs</code> exists because real hardware effects aren't instantaneous — checking the instant a call returns produces false failures on timing alone, not on a real bug. The check polls on the Host clock until it resolves or this budget runs out, and logs how long it actually took as <code>details.elapsedMs</code> — a rising trend there is often a leading indicator of a failure that hasn't happened yet.
-- <b>No mode has <code>ai_</code> in its name, and that is the design decision.</b> An earlier draft had <code>ai_explore</code> (an LLM call inside the loop, on every step) and <code>ai_pregenerated</code> (a list an AI wrote offline). The second was removed first: it named the author of a file rather than any behaviour of the loop, so a worker reading it is simply <code>scripted</code>. The first went the same way for a stronger reason — an LLM choosing the next action still only ever picks from the 28 actions the model already has, while the same LLM reading a finished run can propose the actions the model is <em>missing</em>. Slide 07 carries the argument in full.
+- <b>No mode has <code>ai_</code> in its name, and that is the design decision.</b> An earlier draft had <code>ai_explore</code> (an LLM call inside the loop, on every step) and <code>ai_pregenerated</code> (a list an AI wrote offline). The second was removed first: it named the author of a file rather than any behaviour of the loop, so a worker reading it is simply <code>scripted</code>. The first went the same way for a stronger reason — an LLM choosing the next action still only ever picks from the 29 actions the model already has, while the same LLM reading a finished run can propose the actions the model is <em>missing</em>. Slide 07 carries the argument in full.
 - <b><code>api_connect_wifi</code> stays one action, and the states inside it carry no row.</b> <code>Connecting</code> is a window the Driver observes while that call is in flight, not a place a stepwise worker gets a turn — which is why a fault that needs that window has to be scheduled rather than rolled.
 - <b>What a worker needs is small.</b> An id, a kind, the component it is scoped to, and a pace. A probe adds its pool; a schedule adds its list of times. There is no mode field, because the block of the plan a worker came from already says what it is.
 - <code>ScheduledAction.scheduledOffsetMs</code> is a wall-clock offset from session start, deliberately not tied to any other worker's step count — the whole point is to be indifferent to which step those workers happen to be on. The <code>async_scheduler</code> worker checks the trigger's Guard at fire time; if it's not satisfied (reality drifted further from the offline estimate than expected, e.g. slower DHCP than assumed), the trigger is logged <code>missed</code> and the worker moves on rather than retrying or blocking. A <code>missed</code> trigger is itself a signal, not just a wasted slot — it means the real device's timing profile diverged from what the schedule assumed.
@@ -153,38 +153,35 @@ That split is what lets one database serve both kinds of run. A state-led walk r
 <table class="ref-table">
         <thead><tr><th>action</th><th>component</th><th>executor</th><th>guard</th><th>postcondition</th><th>budget</th><th>cleanupAction</th></tr></thead>
         <tbody>
-          <tr><td><code>api_bt_audio_streaming</code></td><td>bt</td><td>dut</td><td>bt_link = Connected ∧ bt_audio = None</td><td>bt_audio = Streaming ∧ stream active within 5s</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>api_bt_connect</code></td><td>bt</td><td>dut</td><td>bt_link = Idle</td><td>bt_link = Connected ∧ bt_audio = None within 5s — already bonded, no pairing handshake</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>api_bt_disconnect</code></td><td>bt</td><td>dut</td><td>bt_link = Connected</td><td>bt_link = Idle ∧ bt_audio = None</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>api_bt_pairing</code></td><td>bt</td><td>dut</td><td>bt_link = Idle</td><td>bt_link = Connected ∧ bt_audio = None within 10s</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>api_inject_no_peer</code></td><td>bt</td><td>dut</td><td>bt_link = Idle</td><td>bt_link = Idle ∧ error = no_peer_found</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>api_inject_wrong_devicename</code></td><td>bt</td><td>dut</td><td>bt_link = Idle</td><td>bt_link = Idle ∧ error = wrong_device_name</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>inject_phone_disconnect</code></td><td>bt</td><td>equipment</td><td>bt_link = Connected</td><td>bt_link = Idle within 5s</td><td>5s</td><td><code>api_bt_connect</code></td></tr>
-          <tr><td><code>inject_phone_out_of_range</code></td><td>bt</td><td>equipment</td><td>bt_link = Connected</td><td>bt_link = Idle within 15s</td><td>15s</td><td><code>api_bt_connect</code></td></tr>
-          <tr><td><code>inject_phone_reboot</code></td><td>bt</td><td>equipment</td><td>bt_link = Connected</td><td>bt_link = Idle within 15s</td><td>15s</td><td><code>api_bt_connect</code></td></tr>
-          <tr><td><code>api_complete_matter_commissioning</code></td><td>matter</td><td>dut</td><td>matter = Commissioning</td><td>matter = Operational within 75s</td><td>75s</td><td>—</td></tr>
-          <tr><td><code>api_remove_matter_fabric</code></td><td>matter</td><td>dut</td><td>matter = Operational</td><td>matter = Uncommissioned within 20s</td><td>20s</td><td>—</td></tr>
-          <tr><td><code>api_start_matter</code></td><td>matter</td><td>dut</td><td>matter = Uncommissioned ∧ wifi = Connected</td><td>matter = Commissioning within 5s</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>inject_matter_controller_reject</code></td><td>matter</td><td>equipment</td><td>matter = Commissioning</td><td>matter = Uncommissioned within 30s ∧ error = controller_refused</td><td>30s</td><td>—</td></tr>
-          <tr><td><code>inject_wrong_setup_code</code></td><td>matter</td><td>dut</td><td>matter = Commissioning</td><td>matter = Uncommissioned ∧ error = invalid_setup_code</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>clear_system_stress</code></td><td>system</td><td>dut</td><td>cpuLoad ≠ Normal ∨ memPressure ≠ Normal</td><td>cpuLoad = Normal ∧ memPressure = Normal within 10s</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>inject_cpu_stress</code></td><td>system</td><td>dut</td><td>power = Active ∧ cpuLoad = Normal</td><td>cpuLoad = Critical within 10s</td><td>10s</td><td><code>clear_system_stress</code></td></tr>
-          <tr><td><code>inject_memory_stress</code></td><td>system</td><td>dut</td><td>power = Active ∧ memPressure = Normal</td><td>memPressure = Critical within 10s</td><td>10s</td><td><code>clear_system_stress</code></td></tr>
-          <tr><td><code>inject_power_reboot</code></td><td>system</td><td>equipment</td><td>power = Active</td><td>power = Active ∧ wifi = Disconnected ∧ bt_link = Idle ∧ matter = Uncommissioned within 50s</td><td>50s</td><td>—</td></tr>
-          <tr><td><code>api_connect_wifi</code></td><td>wifi</td><td>dut</td><td>wifi = Disconnected</td><td>wifi = Connected within 30s</td><td>30s</td><td>—</td></tr>
-          <tr><td><code>api_disconnect_wifi</code></td><td>wifi</td><td>dut</td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 5s</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>api_get_dhcp</code></td><td>wifi</td><td>dut</td><td>wifi ∈ {Connected, Streaming}</td><td>lease renewed ∧ wifi unchanged within 10s</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>api_get_ipadd</code></td><td>wifi</td><td>dut</td><td>wifi ∈ {Connected, Streaming}</td><td>address read back ∧ wifi unchanged within 3s</td><td>3s</td><td>—</td></tr>
-          <tr><td><code>api_inject_wrong_ipaddr</code></td><td>wifi</td><td>dut</td><td>wifi = Disconnected</td><td>wifi = Disconnected ∧ lastError = invalid_ip_config</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>api_inject_wrong_psk</code></td><td>wifi</td><td>dut</td><td>wifi = Disconnected</td><td>wifi = Disconnected ∧ lastError = auth_failure</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>api_streaming_downlink</code></td><td>wifi</td><td>dut</td><td>wifi = Streaming</td><td>wifi = Streaming within 5s</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>api_streaming_uplink</code></td><td>wifi</td><td>dut</td><td>wifi = Connected</td><td>wifi = Streaming within 5s</td><td>5s</td><td>—</td></tr>
-          <tr><td><code>inject_ap_psk_changed</code></td><td>wifi</td><td>equipment</td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 10s</td><td>10s</td><td><code>api_connect_wifi</code></td></tr>
-          <tr><td><code>inject_ap_ssid_changed</code></td><td>wifi</td><td>equipment</td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 10s</td><td>10s</td><td><code>api_connect_wifi</code></td></tr>
-          <tr><td><code>inject_dhcp_timeout</code></td><td>wifi</td><td>equipment</td><td>wifi ∈ {Connected, Streaming}</td><td>wifi leaves Connected within 30s</td><td>30s</td><td><code>api_connect_wifi</code></td></tr>
-          <tr><td><code>inject_internet_down</code></td><td>wifi</td><td>equipment</td><td>NetworkUplink = Healthy</td><td>NetworkUplink = Down ∧ wifi stays Connected</td><td>10s</td><td>—</td></tr>
-          <tr><td><code>inject_router_reboot</code></td><td>wifi</td><td>equipment</td><td>power = Active</td><td>NetworkUplink returns to Healthy within 90s</td><td>90s</td><td>—</td></tr>
-          <tr><td><code>inject_wifi_drop</code></td><td>wifi</td><td>equipment</td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 5s</td><td>5s</td><td><code>api_connect_wifi</code></td></tr>
+          <tr><td><code>api_bt_audio_streaming</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Connected ∧ bt_audio = None</td><td>bt_audio = Streaming ∧ stream active within 5s</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_bt_disconnect</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Connected</td><td>bt_link = Paired ∧ bt_audio = None</td><td>10s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_bt_pairing</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Idle</td><td>bt_link = Connected ∧ bt_audio = None within 10s</td><td>10s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_bt_reconnect</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Paired</td><td>bt_link = Connected ∧ bt_audio = None within 5s — already bonded, no pairing handshake</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_bt_unpair</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Paired</td><td>bt_link = Idle ∧ bond forgotten within 5s</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_inject_no_peer</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Idle</td><td>bt_link = Idle ∧ error = no_peer_found</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_inject_wrong_devicename</code></td><td>bt</td><td><code>dut</code></td><td>bt_link = Paired</td><td>bt_link = Paired ∧ error = wrong_device_name</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_phone_disconnect</code></td><td>bt</td><td><code>equipment</code></td><td>bt_link = Connected</td><td>bt_link = Paired within 5s</td><td>5s</td><td><code>api_bt_reconnect</code></td></tr>
+          <tr><td><code>inject_phone_out_of_range</code></td><td>bt</td><td><code>equipment</code></td><td>bt_link = Connected</td><td>bt_link = Paired within 15s</td><td>15s</td><td><code>api_bt_reconnect</code></td></tr>
+          <tr><td><code>inject_phone_reboot</code></td><td>bt</td><td><code>equipment</code></td><td>bt_link = Connected</td><td>bt_link = Paired within 15s</td><td>15s</td><td><code>api_bt_reconnect</code></td></tr>
+          <tr><td><code>api_complete_matter_commissioning</code></td><td>matter</td><td><code>dut</code></td><td>matter = Commissioning</td><td>matter = Operational within 75s</td><td>75s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_remove_matter_fabric</code></td><td>matter</td><td><code>dut</code></td><td>matter = Operational</td><td>matter = Uncommissioned within 20s</td><td>20s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_start_matter</code></td><td>matter</td><td><code>dut</code></td><td>matter = Uncommissioned ∧ wifi = Connected</td><td>matter = Commissioning within 5s</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_matter_controller_reject</code></td><td>matter</td><td><code>equipment</code></td><td>matter = Commissioning</td><td>matter = Uncommissioned within 30s ∧ error = controller_refused</td><td>30s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_wrong_setup_code</code></td><td>matter</td><td><code>dut</code></td><td>matter = Commissioning</td><td>matter = Uncommissioned ∧ error = invalid_setup_code</td><td>10s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_power_reboot</code></td><td>system</td><td><code>equipment</code></td><td>power = Active</td><td>power = Active ∧ wifi = Disconnected ∧ bt_link = Idle ∧ matter = Uncommissioned within 50s</td><td>50s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_connect_wifi</code></td><td>wifi</td><td><code>dut</code></td><td>wifi = Disconnected</td><td>wifi = Connected within 30s</td><td>30s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_disconnect_wifi</code></td><td>wifi</td><td><code>dut</code></td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 5s</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_get_ipadd</code></td><td>wifi</td><td><code>dut</code></td><td>wifi ∈ {Connected, Streaming}</td><td>address read back ∧ wifi unchanged within 3s</td><td>3s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_streaming_downlink</code></td><td>wifi</td><td><code>dut</code></td><td>wifi = Streaming</td><td>wifi = Streaming within 5s</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_streaming_uplink</code></td><td>wifi</td><td><code>dut</code></td><td>wifi = Connected</td><td>wifi = Streaming within 5s</td><td>5s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_inject_wrong_ipaddr</code></td><td>wifi</td><td><code>dut</code></td><td>wifi = Disconnected</td><td>wifi = Disconnected ∧ lastError = invalid_ip_config</td><td>10s</td><td>&mdash;</td></tr>
+          <tr><td><code>api_inject_wrong_psk</code></td><td>wifi</td><td><code>dut</code></td><td>wifi = Disconnected</td><td>wifi = Disconnected ∧ lastError = auth_failure</td><td>10s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_ap_psk_changed</code></td><td>wifi</td><td><code>equipment</code></td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 10s</td><td>10s</td><td><code>api_connect_wifi</code></td></tr>
+          <tr><td><code>inject_ap_ssid_changed</code></td><td>wifi</td><td><code>equipment</code></td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 10s</td><td>10s</td><td><code>api_connect_wifi</code></td></tr>
+          <tr><td><code>inject_dhcp_timeout</code></td><td>wifi</td><td><code>equipment</code></td><td>wifi ∈ {Connected, Streaming}</td><td>wifi leaves Connected within 30s</td><td>30s</td><td><code>api_connect_wifi</code></td></tr>
+          <tr><td><code>inject_internet_down</code></td><td>wifi</td><td><code>equipment</code></td><td>NetworkUplink = Healthy</td><td>NetworkUplink = Down ∧ wifi stays Connected</td><td>10s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_router_reboot</code></td><td>wifi</td><td><code>equipment</code></td><td>power = Active</td><td>NetworkUplink returns to Healthy within 90s</td><td>90s</td><td>&mdash;</td></tr>
+          <tr><td><code>inject_wifi_drop</code></td><td>wifi</td><td><code>equipment</code></td><td>wifi ∈ {Connected, Streaming}</td><td>wifi = Disconnected within 5s</td><td>5s</td><td><code>api_connect_wifi</code></td></tr>
         </tbody>
       </table>
 
@@ -192,7 +189,7 @@ That split is what lets one database serve both kinds of run. A state-led walk r
 - <b>The postcondition <em>is</em> the destination, written as an assertion.</b> "<code>wifi = Connected within 30s</code>" says where the call lands and what else must hold — so a separate <code>destState</code> field would be the same fact written twice, and two copies drift.
 - <b><code>postconditionTimeoutMs</code> is a budget, not a formality.</b> A call that lands correctly but late is a finding, and under injected stress that is usually the finding: <code>elapsedMs</code> trends upward before anything actually fails.
 
-## The chains — 3 chains, 9 states, 24 transitions
+## The chains — 3 chains, 10 states, 22 transitions
 
 One chain per component. Every transition carries the action that causes it, the state it is expected to reach, and how likely a worker is to take it; every state's transitions sum to 1. A matrix cannot hold this — two transitions into the same state collapse into one cell, and the action is lost — so the transition list is what the engine reads and the matrix is a view for humans.
 
@@ -202,22 +199,20 @@ One chain per component. Every transition carries the action that causes it, the
         <thead><tr><th>chain</th><th>state</th><th>transition</th><th>next state</th><th>p</th></tr></thead>
         <tbody>
           <tr><td>wifi</td><td><code>Disconnected</code></td><td><code>api_connect_wifi</code></td><td>Connected</td><td><b>0.75</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_inject_wrong_psk</code></td><td>Disconnected</td><td><b>0.15</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_inject_wrong_ipaddr</code></td><td>Disconnected</td><td><b>0.10</b></td></tr>
+          <tr><td></td><td><code></code></td><td><code>api_inject_wrong_psk</code></td><td>Disconnected</td><td><b>0.25</b></td></tr>
           <tr><td></td><td><code>Connected</code></td><td><code>api_streaming_uplink</code></td><td>Streaming</td><td><b>0.50</b></td></tr>
           <tr><td></td><td><code></code></td><td><code>api_disconnect_wifi</code></td><td>Disconnected</td><td><b>0.30</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_get_dhcp</code></td><td>Connected</td><td><b>0.10</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_get_ipadd</code></td><td>Connected</td><td><b>0.10</b></td></tr>
+          <tr><td></td><td><code></code></td><td><code>api_get_ipadd</code></td><td>Connected</td><td><b>0.20</b></td></tr>
           <tr><td></td><td><code>Streaming</code></td><td><code>api_streaming_downlink</code></td><td>Streaming</td><td><b>0.60</b></td></tr>
           <tr><td></td><td><code></code></td><td><code>api_disconnect_wifi</code></td><td>Disconnected</td><td><b>0.40</b></td></tr>
-          <tr><td>bt</td><td><code>Idle</code></td><td><code>api_bt_pairing</code></td><td>Connected · None</td><td><b>0.50</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_bt_connect</code></td><td>Connected · None</td><td><b>0.25</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_bt_disconnect</code></td><td>Idle</td><td><b>0.10</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_inject_wrong_devicename</code></td><td>Idle</td><td><b>0.10</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_inject_no_peer</code></td><td>Idle</td><td><b>0.05</b></td></tr>
+          <tr><td>bt</td><td><code>Idle</code></td><td><code>api_bt_pairing</code></td><td>Connected · None</td><td><b>0.75</b></td></tr>
+          <tr><td></td><td><code></code></td><td><code>api_inject_no_peer</code></td><td>Idle</td><td><b>0.25</b></td></tr>
+          <tr><td></td><td><code>Paired</code></td><td><code>api_bt_reconnect</code></td><td>Connected · None</td><td><b>0.60</b></td></tr>
+          <tr><td></td><td><code></code></td><td><code>api_inject_wrong_devicename</code></td><td>Paired</td><td><b>0.25</b></td></tr>
+          <tr><td></td><td><code></code></td><td><code>api_bt_unpair</code></td><td>Idle</td><td><b>0.15</b></td></tr>
           <tr><td></td><td><code>Connected · None</code></td><td><code>api_bt_audio_streaming</code></td><td>Connected · Streaming</td><td><b>0.65</b></td></tr>
-          <tr><td></td><td><code></code></td><td><code>api_bt_disconnect</code></td><td>Idle</td><td><b>0.35</b></td></tr>
-          <tr><td></td><td><code>Connected · Streaming</code></td><td><code>api_bt_disconnect</code></td><td>Idle</td><td><b>0.70</b></td></tr>
+          <tr><td></td><td><code></code></td><td><code>api_bt_disconnect</code></td><td>Paired</td><td><b>0.35</b></td></tr>
+          <tr><td></td><td><code>Connected · Streaming</code></td><td><code>api_bt_disconnect</code></td><td>Paired</td><td><b>0.70</b></td></tr>
           <tr><td></td><td><code></code></td><td><code>api_bt_audio_streaming</code></td><td>Connected · Streaming</td><td><b>0.30</b></td></tr>
           <tr><td>matter</td><td><code>Uncommissioned</code></td><td><code>api_start_matter</code></td><td>Commissioning</td><td><b>0.80</b></td></tr>
           <tr><td></td><td><code></code></td><td><code>api_remove_matter_fabric</code></td><td>Uncommissioned</td><td><b>0.20</b></td></tr>

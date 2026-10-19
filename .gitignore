@@ -5,7 +5,7 @@ __pycache__/
 venv/
 
 # Run output — a session folder is generated, not source
-runs/
+test_result/
 next_run.json
 
 # macOS

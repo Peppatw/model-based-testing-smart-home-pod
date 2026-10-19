@@ -49,16 +49,21 @@ class Transition:
 # that happens *to* the device is a fault, and faults are scheduled, not rolled.
 CHAINS: dict[str, dict[str, list[Transition]]] = {
     "wifi": {
+        # One action per state-to-state transition. Two actions causing the same move drew two
+        # arrows between the same pair of circles, which overlap on the figure and mean a reader
+        # counting edges and a table counting action names never agree. The removed action keeps
+        # its place in the Action Database — a probe or a sweep still fires it and the guard still
+        # judges it — it is only the chain that no longer rolls it. Its probability goes to the
+        # action that stayed in that cell, so the *transition* keeps the weight it had and the
+        # stationary distribution does not move.
         "Disconnected": [
             Transition("api_connect_wifi", "Connected", 0.75),
-            Transition("api_inject_wrong_psk", "Disconnected", 0.15),
-            Transition("api_inject_wrong_ipaddr", "Disconnected", 0.10),
+            Transition("api_inject_wrong_psk", "Disconnected", 0.25),   # was 0.15 + ipaddr 0.10
         ],
         "Connected": [
             Transition("api_streaming_uplink", "Streaming", 0.50),
             Transition("api_disconnect_wifi", "Disconnected", 0.30),
-            Transition("api_get_dhcp", "Connected", 0.10),
-            Transition("api_get_ipadd", "Connected", 0.10),
+            Transition("api_get_ipadd", "Connected", 0.20),             # was 0.10 + dhcp 0.10
         ],
         "Streaming": [
             Transition("api_streaming_downlink", "Streaming", 0.60),
@@ -66,19 +71,24 @@ CHAINS: dict[str, dict[str, list[Transition]]] = {
         ],
     },
     "bt": {
+        # Four states, because "never bonded" and "bonded but not connected" are different things
+        # to a Bluetooth stack — and until they were, reconnecting and first-time pairing had to be
+        # drawn as the same edge out of one `Idle`.
         "Idle": [
-            Transition("api_bt_pairing", "Connected · None", 0.50),
-            Transition("api_bt_connect", "Connected · None", 0.25),
-            Transition("api_bt_disconnect", "Idle", 0.10),          # issuable, expected refused
-            Transition("api_inject_wrong_devicename", "Idle", 0.10),
-            Transition("api_inject_no_peer", "Idle", 0.05),
+            Transition("api_bt_pairing", "Connected · None", 0.75),
+            Transition("api_inject_no_peer", "Idle", 0.25),   # issuable, expected refused
+        ],
+        "Paired": [
+            Transition("api_bt_reconnect", "Connected · None", 0.60),
+            Transition("api_inject_wrong_devicename", "Paired", 0.25),   # bond exists, name wrong
+            Transition("api_bt_unpair", "Idle", 0.15),   # the only edge back to never-bonded
         ],
         "Connected · None": [
             Transition("api_bt_audio_streaming", "Connected · Streaming", 0.65),
-            Transition("api_bt_disconnect", "Idle", 0.35),
+            Transition("api_bt_disconnect", "Paired", 0.35),
         ],
         "Connected · Streaming": [
-            Transition("api_bt_disconnect", "Idle", 0.70),
+            Transition("api_bt_disconnect", "Paired", 0.70),
             Transition("api_bt_audio_streaming", "Connected · Streaming", 0.30),
         ],
     },
@@ -157,6 +167,78 @@ class MarkovPolicy:
                 for s, row in rows.items() for e in row}
 
 
+# ------------------------------------------------------- a test case as one file
+# A test case is the *model*: the chains and the faults that can be fired at them. A plan
+# (testcases/TC-01/*.json) is one way to walk it, and a session is one execution of a plan. Those
+# three were one word for a while — `sessionId` — which is why nothing recorded that all six
+# configs in this repo walk the same single test case.
+#
+# The stored form is a matrix, because that is what Slide 01's editor produces and what its own
+# note calls the source of truth: row is the state you are in, column the state you land in, and
+# the cell holds the actions that take you there with their probabilities. An empty cell is no
+# edge. A cell can hold more than one action — `wifi/Disconnected -> Disconnected` holds two —
+# which is why a cell is a list and not a single value.
+
+def to_matrix(chains: dict[str, dict[str, list[Transition]]]) -> dict:
+    """Chains -> the stored matrix form. The inverse of `from_matrix`.
+
+    `i` is the transition's position in its row, and it is stored because the dice read a row
+    as a *list*: `random.choices` accumulates weights in list order, so the same seed against a
+    reordered row picks a different edge. Grouping by destination — which is what a matrix does —
+    reorders `wifi/Connected`, so without `i` this file would silently change every run and every
+    `modelVersion`. A matrix typed by hand may leave `i` out; the loader then falls back to
+    destination order, which is a choice, not a coincidence.
+    """
+    out: dict[str, dict] = {}
+    for comp, rows in chains.items():
+        states = list(rows)
+        out[comp] = {"states": states,
+                     "matrix": {src: {dst: [{"action": e.action, "p": e.p, "i": i}
+                                            for i, e in enumerate(rows[src]) if e.nxt == dst]
+                                      for dst in states}
+                                for src in states}}
+    return out
+
+
+def from_matrix(data: dict) -> dict[str, dict[str, list[Transition]]]:
+    """The stored matrix form -> chains, in the row order the file records.
+
+    `states` fixes where each node sits on the ring the figure draws, so reordering it redraws
+    the same chain differently; reading it from the file rather than from a dict's insertion
+    order keeps the drawing stable. Within a row, `i` fixes the order the dice see (see
+    `to_matrix`).
+    """
+    chains: dict[str, dict[str, list[Transition]]] = {}
+    for comp, spec in data.items():
+        states, m = spec["states"], spec["matrix"]
+        rows: dict[str, list[Transition]] = {}
+        for src in states:
+            cells = [(c.get("i", 10_000 + k), Transition(c["action"], dst, float(c["p"])))
+                     for k, dst in enumerate(states)
+                     for c in m.get(src, {}).get(dst, [])]
+            rows[src] = [t for _, t in sorted(cells, key=lambda kv: kv[0])]
+        chains[comp] = rows
+    return chains
+
+
+def load_test_case(path) -> tuple[str, dict[str, dict[str, list[Transition]]], list[str]]:
+    """Read one test case file. Returns its id, its chains, and its fault list.
+
+    `validate_chains` runs here rather than at import, so a malformed test case fails when it is
+    loaded and says what is wrong — a probability row that does not sum to 1 is a bug, never
+    something to quietly rescale.
+    """
+    import json
+    from pathlib import Path
+    data = json.loads(Path(path).read_text())
+    chains = from_matrix(data["chains"])
+    faults = list(data.get("faults", FAULTS))
+    problems = validate_chains(ACTION_DB, chains)
+    if problems:
+        raise ValueError(f"{path} is inconsistent:\n  " + "\n  ".join(problems))
+    return data.get("id", Path(path).stem), chains, faults
+
+
 def validate_chains(db=ACTION_DB, chains: dict | None = None) -> list[str]:
     """Checks a person would otherwise do by eye, and would eventually stop doing."""
     chains = chains if chains is not None else CHAINS
@@ -178,8 +260,26 @@ def validate_chains(db=ACTION_DB, chains: dict | None = None) -> list[str]:
                 if e.nxt not in rows:
                     problems.append(f"{comp}/{state} → {e.nxt!r}, which is not a state "
                                     f"of this chain")
-    for name in FAULTS:                      # a fault the bench cannot cause is a mistake
-        a = known[name]
-        if a.category is Category.API and a.executor is Executor.DUT:
-            problems.append(f"{name} is an ordinary API call but sits outside every chain")
     return problems
+
+
+def probe_only(db=ACTION_DB, chains: dict | None = None) -> list[str]:
+    """Ordinary API calls no chain walks — reachable by a probe or a sweep, and by nothing else.
+
+    This used to be an error, on the reasoning that an API call outside every chain is one
+    somebody forgot to wire in. That reasoning stopped holding when the chains were reduced to one
+    action per state-to-state transition. What came out of those rows was either removed from the
+    Action Database as a duplicate or given a source state of its own — `api_bt_connect` became
+    `api_bt_reconnect` out of the new `Paired` state — so nothing is left stranded today. The
+    check remains because the next action somebody adds and forgets to wire in looks exactly like
+    one of these from here.
+
+    So it is reported rather than refused — but reported, because the two cases look identical
+    from here. An action nobody walks is only tested if a plan includes a probe or a sweep that
+    reaches it, and a plan of nothing but walk workers will never call it at all.
+    """
+    chains = chains if chains is not None else CHAINS
+    walked = {t.action for rows in chains.values() for r in rows.values() for t in r}
+    return sorted(a.name for a in db
+                  if a.name not in walked
+                  and a.category is Category.API and a.executor is Executor.DUT)

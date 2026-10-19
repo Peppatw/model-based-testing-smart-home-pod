@@ -27,9 +27,13 @@ class Wifi(str, Enum):
 
 
 class BtLink(str, Enum):
-    IDLE = "Idle"
+    IDLE = "Idle"                 # never bonded with this peer
     ADVERTISING = "Advertising"
     PAIRING = "Pairing"
+    # Bonded but not connected. `Idle` used to mean both, which left `api_bt_reconnect` with no
+    # valid source state — reconnecting is only meaningful once a bond exists, and a chain that
+    # cannot say "bonded" has to draw reconnect and first-time pairing as the same edge.
+    PAIRED = "Paired"
     CONNECTED = "Connected"
 
 
@@ -78,6 +82,13 @@ class EventType(str, Enum):
     TELEMETRY = "resource_snapshot"
     ASYNC_FIRED = "async_fault_fired"
     ASYNC_MISSED = "async_fault_missed"
+    # A fault's cleanup, resolved or lapsed. Counting cleanups by action name does not work:
+    # they double as ordinary API calls — `api_connect_wifi` appears thousands of times, almost
+    # none of them as a cleanup — so only the `PendingCleanup` instance's fate says anything. A
+    # fault whose cleanup never fired leaves the device perturbed for the rest of the run and
+    # contaminates every figure after it.
+    CLEANUP_FIRED = "cleanup_fired"
+    CLEANUP_LAPSED = "cleanup_lapsed"
 
 
 # ----------------------------------------------------------------- composite state
@@ -124,7 +135,7 @@ class CompositeState:
         if component == "bt":
             if self.bt_link is BtLink.CONNECTED:
                 return f"Connected · {self.bt_audio.value}"
-            return {BtLink.IDLE: "Idle"}.get(self.bt_link)
+            return {BtLink.IDLE: "Idle", BtLink.PAIRED: "Paired"}.get(self.bt_link)
         if component == "matter":
             return {Matter.UNCOMMISSIONED: "Uncommissioned",
                     Matter.COMMISSIONING: "Commissioning",
@@ -143,6 +154,18 @@ class CompositeState:
         bad = []
         if self.bt_link is not BtLink.CONNECTED and self.bt_audio is not BtAudio.NONE:
             bad.append(f"bt_audio = {self.bt_audio.value} while bt_link = {self.bt_link.value}")
+        # Removing a fabric is a conversation with the controller, so it cannot be in progress
+        # with no network at all. Decided rather than left out: this function is both the
+        # coverage denominator and Replay's test for "this reproduction starts from a state only
+        # a broken device reaches", so a missing rule weakens two things at once.
+        #
+        # Deliberately NOT added: `wifi = Disconnected` with `matter = Operational` or
+        # `Commissioning`. A commissioned fabric stays Operational while the network is down, and
+        # commissioning can run over BLE — both are reachable, so counting them as illegal would
+        # shrink the denominator around states the device really can be in.
+        if self.matter is Matter.FABRIC_REMOVING and self.wifi is Wifi.DISCONNECTED:
+            bad.append("matter = Fabric_Removing with wifi = Disconnected — "
+                       "removal needs the controller")
         if self.power is Power.OFF and (self.wifi is not Wifi.DISCONNECTED
                                         or self.bt_link is not BtLink.IDLE
                                         or self.matter is not Matter.UNCOMMISSIONED):
@@ -166,6 +189,25 @@ class CompositeState:
             f"{self.power.value}|wifi={self.wifi.value}"
             f"|bt={self.bt_link.value}/{self.bt_audio.value}|matter={self.matter.value}"
         )
+
+
+def legal_composite_states() -> list[tuple]:
+    """Every combination of the five regions that `inconsistencies()` does not reject.
+
+    The honest denominator for state coverage. The Cartesian product is 320; two rules cut it to
+    101 — `bt_audio` streaming without a connected link, and regions still active after power off.
+    Neither concerns Wi-Fi and Matter together, so combinations like
+    `wifi=Disconnected | matter=Operational` count as legal because nobody ruled on them, not
+    because anyone decided they were reachable (docs/pending_fixes.md E3).
+    """
+    import itertools
+    out = []
+    for combo in itertools.product(Power, Wifi, BtLink, BtAudio, Matter):
+        st = CompositeState(power=combo[0], wifi=combo[1], bt_link=combo[2],
+                            bt_audio=combo[3], matter=combo[4])
+        if not st.inconsistencies():
+            out.append(st.as_tuple())
+    return out
 
 
 Guard = Callable[[CompositeState], bool]
@@ -215,7 +257,8 @@ def _connected_bt(s: CompositeState) -> CompositeState:
 
 
 def _drop_bt(s: CompositeState) -> CompositeState:
-    return _s(s, bt_link=BtLink.IDLE, bt_audio=BtAudio.NONE)
+    """Disconnecting keeps the bond: the link drops to `Paired`, not to `Idle`."""
+    return _s(s, bt_link=BtLink.PAIRED, bt_audio=BtAudio.NONE)
 
 
 def _build() -> list[ActionDefinition]:
@@ -236,12 +279,11 @@ def _build() -> list[ActionDefinition]:
           lambda s: s.wifi in (Wifi.CONNECTED, Wifi.STREAMING),
           "wifi = Disconnected within 5s", lambda s: s.wifi is Wifi.DISCONNECTED,
           _drop_wifi, postcondition_timeout_ms=5_000),
-        A("api_get_dhcp", api, dut, "wifi",
-          "wifi ∈ {Connected, Streaming}",
-          lambda s: s.wifi in (Wifi.CONNECTED, Wifi.STREAMING),
-          "lease renewed ∧ wifi unchanged within 10s",
-          lambda s: s.wifi in (Wifi.CONNECTED, Wifi.STREAMING),
-          lambda s: s),
+        # `api_get_dhcp` was here. It and `api_get_ipadd` were the same edge — a
+        # `Connected → Connected` self-loop asking the network for information — and there is no
+        # state in this model where renewing a lease and reading back an address lead anywhere
+        # different. Two actions for one transition means the chain has to leave one of them
+        # unwalked, and an unwalked API call is one nothing tests.
         A("api_get_ipadd", api, dut, "wifi",
           "wifi ∈ {Connected, Streaming}",
           lambda s: s.wifi in (Wifi.CONNECTED, Wifi.STREAMING),
@@ -315,15 +357,19 @@ def _build() -> list[ActionDefinition]:
           "bt_link = Connected ∧ bt_audio = None within 10s",
           lambda s: s.bt_link is BtLink.CONNECTED,
           _connected_bt, postcondition_timeout_ms=10_000),
-        A("api_bt_connect", api, dut, "bt",
-          "bt_link = Idle", lambda s: s.bt_link is BtLink.IDLE,
+        # Reconnect, not connect: it needs a bond to already exist, which is what separates it
+        # from pairing and what gives it a source state of its own.
+        A("api_bt_reconnect", api, dut, "bt",
+          "bt_link = Paired", lambda s: s.bt_link is BtLink.PAIRED,
           "bt_link = Connected ∧ bt_audio = None within 5s — already bonded, no pairing handshake",
           lambda s: s.bt_link is BtLink.CONNECTED,
           _connected_bt, postcondition_timeout_ms=5_000),
+        # Disconnecting leaves the bond in place. It used to land in `Idle`, which said the pairing
+        # was forgotten too — so a reconnect afterwards was indistinguishable from a first pairing.
         A("api_bt_disconnect", api, dut, "bt",
           "bt_link = Connected", lambda s: s.bt_link is BtLink.CONNECTED,
-          "bt_link = Idle ∧ bt_audio = None",
-          lambda s: s.bt_link is BtLink.IDLE and s.bt_audio is BtAudio.NONE,
+          "bt_link = Paired ∧ bt_audio = None",
+          lambda s: s.bt_link is BtLink.PAIRED and s.bt_audio is BtAudio.NONE,
           _drop_bt),
         A("api_bt_audio_streaming", api, dut, "bt",
           "bt_link = Connected ∧ bt_audio = None",
@@ -331,11 +377,22 @@ def _build() -> list[ActionDefinition]:
           "bt_audio = Streaming ∧ stream active within 5s",
           lambda s: s.bt_audio is BtAudio.STREAMING,
           lambda s: _s(s, bt_audio=BtAudio.STREAMING), postcondition_timeout_ms=5_000),
+        # Reconnecting to the wrong name: the bond exists, the name does not match, nothing moves.
+        # Distinct from `no_peer`, where there is no peer to bond with in the first place.
         A("api_inject_wrong_devicename", fault, dut, "bt",
-          "bt_link = Idle", lambda s: s.bt_link is BtLink.IDLE,
-          "bt_link = Idle ∧ error = wrong_device_name",
-          lambda s: s.bt_link is BtLink.IDLE,
+          "bt_link = Paired", lambda s: s.bt_link is BtLink.PAIRED,
+          "bt_link = Paired ∧ error = wrong_device_name",
+          lambda s: s.bt_link is BtLink.PAIRED,
           lambda s: s, postcondition_timeout_ms=5_000),
+        # The only way back to `Idle`. Without it, pairing happens once at the start of a run and
+        # never again — `Idle` becomes a state the chain leaves and cannot return to, and its two
+        # transitions are walked once each however long the session is.
+        A("api_bt_unpair", api, dut, "bt",
+          "bt_link = Paired", lambda s: s.bt_link is BtLink.PAIRED,
+          "bt_link = Idle ∧ bond forgotten within 5s",
+          lambda s: s.bt_link is BtLink.IDLE,
+          lambda s: _s(s, bt_link=BtLink.IDLE, bt_audio=BtAudio.NONE),
+          postcondition_timeout_ms=5_000),
         A("api_inject_no_peer", fault, dut, "bt",
           "bt_link = Idle", lambda s: s.bt_link is BtLink.IDLE,
           "bt_link = Idle ∧ error = no_peer_found",
@@ -345,20 +402,23 @@ def _build() -> list[ActionDefinition]:
 
     # ---- bt / equipment ---------------------------------------------------
     out += [
+        # The peer going away drops the link, not the bond: a phone walking out of range does
+        # not make the Pod forget it was ever paired. These landed in `Idle` while `Idle` was
+        # the only word for "not connected"; only `api_bt_unpair` reaches it now.
         A("inject_phone_disconnect", fault, eq, "bt",
           "bt_link = Connected", lambda s: s.bt_link is BtLink.CONNECTED,
-          "bt_link = Idle within 5s", lambda s: s.bt_link is BtLink.IDLE,
-          _drop_bt, postcondition_timeout_ms=5_000, cleanup_action="api_bt_connect"),
+          "bt_link = Paired within 5s", lambda s: s.bt_link is BtLink.PAIRED,
+          _drop_bt, postcondition_timeout_ms=5_000, cleanup_action="api_bt_reconnect"),
         A("inject_phone_out_of_range", fault, eq, "bt",
           "bt_link = Connected", lambda s: s.bt_link is BtLink.CONNECTED,
-          "bt_link = Idle within 15s", lambda s: s.bt_link is BtLink.IDLE,
+          "bt_link = Paired within 15s", lambda s: s.bt_link is BtLink.PAIRED,
           _drop_bt, postcondition_timeout_ms=15_000,
-          cleanup_action="api_bt_connect"),
+          cleanup_action="api_bt_reconnect"),
         A("inject_phone_reboot", fault, eq, "bt",
           "bt_link = Connected", lambda s: s.bt_link is BtLink.CONNECTED,
-          "bt_link = Idle within 15s", lambda s: s.bt_link is BtLink.IDLE,
+          "bt_link = Paired within 15s", lambda s: s.bt_link is BtLink.PAIRED,
           _drop_bt, postcondition_timeout_ms=15_000,
-          cleanup_action="api_bt_connect"),
+          cleanup_action="api_bt_reconnect"),
     ]
 
     # ---- matter -----------------------------------------------------------
@@ -390,26 +450,16 @@ def _build() -> list[ActionDefinition]:
     ]
 
     # ---- system -----------------------------------------------------------
+    # `inject_cpu_stress`, `inject_memory_stress` and `clear_system_stress` used to live here.
+    # They were removed because a plan now carries a `systemRamp` — a timeline saying what the
+    # device is carrying between which times — and two mechanisms writing one variable eventually
+    # disagree about its value. The ramp won because that is the shape the thing actually has:
+    # "25% for two hours, then 50%" is a schedule, not a choice anyone rolls dice on, and asking a
+    # chain for the probability of the CPU reaching 75% has no answer.
+    #
+    # `cpuLoad` and `memPressure` are still read by every guard and postcondition, and they still
+    # stretch `Driver.elapsed_ms`; what changed is who writes them.
     out += [
-        A("inject_cpu_stress", fault, dut, "system",
-          "power = Active ∧ cpuLoad = Normal",
-          lambda s: s.power is Power.ACTIVE and s.cpu_load is Stress.NORMAL,
-          "cpuLoad = Critical within 10s", lambda s: s.cpu_load is Stress.CRITICAL,
-          lambda s: _s(s, cpu_load=Stress.CRITICAL),
-          cleanup_action="clear_system_stress"),
-        A("inject_memory_stress", fault, dut, "system",
-          "power = Active ∧ memPressure = Normal",
-          lambda s: s.power is Power.ACTIVE and s.mem_pressure is Stress.NORMAL,
-          "memPressure = Critical within 10s",
-          lambda s: s.mem_pressure is Stress.CRITICAL,
-          lambda s: _s(s, mem_pressure=Stress.CRITICAL),
-          cleanup_action="clear_system_stress"),
-        A("clear_system_stress", fault, dut, "system",
-          "cpuLoad ≠ Normal ∨ memPressure ≠ Normal",
-          lambda s: s.cpu_load is not Stress.NORMAL or s.mem_pressure is not Stress.NORMAL,
-          "cpuLoad = Normal ∧ memPressure = Normal within 10s",
-          lambda s: s.cpu_load is Stress.NORMAL and s.mem_pressure is Stress.NORMAL,
-          lambda s: _s(s, cpu_load=Stress.NORMAL, mem_pressure=Stress.NORMAL)),
         # One action, not two: the bench cuts power and restores it as a single
         # atomic fault, so there is nothing left for a separate cleanupAction to do —
         # the postcondition already asserts the full cold-boot recovery.

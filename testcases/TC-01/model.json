@@ -1,0 +1,234 @@
+{
+  "id": "TC-01",
+  "description": "Smart Home Pod connectivity \u2014 the worked test case on Slide 01 of the Blueprint. Three components walked concurrently, with faults fired at the DUT as a whole rather than at any one chain.",
+  "chains": {
+    "wifi": {
+      "states": [
+        "Disconnected",
+        "Connected",
+        "Streaming"
+      ],
+      "matrix": {
+        "Disconnected": {
+          "Disconnected": [
+            {
+              "action": "api_inject_wrong_psk",
+              "p": 0.25,
+              "i": 1
+            }
+          ],
+          "Connected": [
+            {
+              "action": "api_connect_wifi",
+              "p": 0.75,
+              "i": 0
+            }
+          ],
+          "Streaming": []
+        },
+        "Connected": {
+          "Disconnected": [
+            {
+              "action": "api_disconnect_wifi",
+              "p": 0.3,
+              "i": 1
+            }
+          ],
+          "Connected": [
+            {
+              "action": "api_get_ipadd",
+              "p": 0.2,
+              "i": 2
+            }
+          ],
+          "Streaming": [
+            {
+              "action": "api_streaming_uplink",
+              "p": 0.5,
+              "i": 0
+            }
+          ]
+        },
+        "Streaming": {
+          "Disconnected": [
+            {
+              "action": "api_disconnect_wifi",
+              "p": 0.4,
+              "i": 1
+            }
+          ],
+          "Connected": [],
+          "Streaming": [
+            {
+              "action": "api_streaming_downlink",
+              "p": 0.6,
+              "i": 0
+            }
+          ]
+        }
+      }
+    },
+    "bt": {
+      "states": [
+        "Idle",
+        "Paired",
+        "Connected \u00b7 None",
+        "Connected \u00b7 Streaming"
+      ],
+      "matrix": {
+        "Idle": {
+          "Idle": [
+            {
+              "action": "api_inject_no_peer",
+              "p": 0.25,
+              "i": 1
+            }
+          ],
+          "Paired": [],
+          "Connected \u00b7 None": [
+            {
+              "action": "api_bt_pairing",
+              "p": 0.75,
+              "i": 0
+            }
+          ],
+          "Connected \u00b7 Streaming": []
+        },
+        "Paired": {
+          "Idle": [
+            {
+              "action": "api_bt_unpair",
+              "p": 0.15,
+              "i": 2
+            }
+          ],
+          "Paired": [
+            {
+              "action": "api_inject_wrong_devicename",
+              "p": 0.25,
+              "i": 1
+            }
+          ],
+          "Connected \u00b7 None": [
+            {
+              "action": "api_bt_reconnect",
+              "p": 0.6,
+              "i": 0
+            }
+          ],
+          "Connected \u00b7 Streaming": []
+        },
+        "Connected \u00b7 None": {
+          "Idle": [],
+          "Paired": [
+            {
+              "action": "api_bt_disconnect",
+              "p": 0.35,
+              "i": 1
+            }
+          ],
+          "Connected \u00b7 None": [],
+          "Connected \u00b7 Streaming": [
+            {
+              "action": "api_bt_audio_streaming",
+              "p": 0.65,
+              "i": 0
+            }
+          ]
+        },
+        "Connected \u00b7 Streaming": {
+          "Idle": [],
+          "Paired": [
+            {
+              "action": "api_bt_disconnect",
+              "p": 0.7,
+              "i": 0
+            }
+          ],
+          "Connected \u00b7 None": [],
+          "Connected \u00b7 Streaming": [
+            {
+              "action": "api_bt_audio_streaming",
+              "p": 0.3,
+              "i": 1
+            }
+          ]
+        }
+      }
+    },
+    "matter": {
+      "states": [
+        "Uncommissioned",
+        "Commissioning",
+        "Operational"
+      ],
+      "matrix": {
+        "Uncommissioned": {
+          "Uncommissioned": [
+            {
+              "action": "api_remove_matter_fabric",
+              "p": 0.2,
+              "i": 1
+            }
+          ],
+          "Commissioning": [
+            {
+              "action": "api_start_matter",
+              "p": 0.8,
+              "i": 0
+            }
+          ],
+          "Operational": []
+        },
+        "Commissioning": {
+          "Uncommissioned": [
+            {
+              "action": "inject_wrong_setup_code",
+              "p": 0.35,
+              "i": 1
+            }
+          ],
+          "Commissioning": [],
+          "Operational": [
+            {
+              "action": "api_complete_matter_commissioning",
+              "p": 0.65,
+              "i": 0
+            }
+          ]
+        },
+        "Operational": {
+          "Uncommissioned": [
+            {
+              "action": "api_remove_matter_fabric",
+              "p": 0.7,
+              "i": 0
+            }
+          ],
+          "Commissioning": [],
+          "Operational": [
+            {
+              "action": "api_start_matter",
+              "p": 0.3,
+              "i": 1
+            }
+          ]
+        }
+      }
+    }
+  },
+  "faults": [
+    "api_inject_wrong_ipaddr",
+    "inject_ap_psk_changed",
+    "inject_ap_ssid_changed",
+    "inject_dhcp_timeout",
+    "inject_internet_down",
+    "inject_matter_controller_reject",
+    "inject_phone_disconnect",
+    "inject_phone_out_of_range",
+    "inject_phone_reboot",
+    "inject_power_reboot",
+    "inject_router_reboot",
+    "inject_wifi_drop"
+  ]
+}

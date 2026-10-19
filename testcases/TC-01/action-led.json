@@ -1,5 +1,5 @@
 {
-  "sessionId": "PROBE-001",
+  "sessionId": "ACTION-LED",
   "description": "Action-led: every worker fires whatever it likes at whatever state the device is in. The chain is ignored; the guard still judges, so each refused call is an assertion rather than noise.",
   "durationMs": 14400000,
   "probe": [

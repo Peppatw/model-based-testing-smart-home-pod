@@ -18,7 +18,7 @@ is the design:
 So the plan can change what a run exercises, and can never change what a result means.
 That is the property that makes it safe to let a model write one.
 
-    python3 -m pod_mbt.plan --changed wifi --minutes 480 --history runs/ --out next_run.json
+    python3 -m pod_mbt.plan --changed wifi --minutes 480 --history test_result/ --out next_run.json
     python3 -m pod_mbt.run next_run.json
 """
 from __future__ import annotations
@@ -60,11 +60,15 @@ class History:
     def load(cls, root: Optional[Path]) -> "History":
         if root is None or not Path(root).is_dir():
             return cls()
+        # Run folders are grouped by test case — `<root>/<testCase>/<stamp>_<sessionId>` — so
+        # this walks a level deeper than the name suggests. A flat `<root>/<stamp>_<sessionId>`
+        # is still read, because folders written before the grouping existed are still history,
+        # and a planner that silently found nothing would produce a plan as if no run had ever
+        # happened.
         runs = []
-        for folder in sorted(Path(root).iterdir()):
-            meta = folder / "session.json"
-            if not meta.is_file():
-                continue
+        folders = [f for f in sorted(Path(root).rglob("session.json"))]
+        for meta in folders:
+            folder = meta.parent
             entry: dict[str, Any] = {"folder": folder.name,
                                      "session": json.loads(meta.read_text())}
             for key, rel in (("coverage", "Analysis/CoverageReport.json"),
@@ -260,7 +264,7 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--minutes", type=int, default=480)
     ap.add_argument("--bench", default="simulation")
     ap.add_argument("--note", default="")
-    ap.add_argument("--history", type=Path, help="directory holding previous run folders")
+    ap.add_argument("--history", type=Path, help="directory holding previous run folders (test_result/)")
     ap.add_argument("--session-id", default="PLANNED-001")
     ap.add_argument("--out", type=Path, help="write the plan here; default is stdout")
     a = ap.parse_args(argv)
