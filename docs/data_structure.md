@@ -63,7 +63,8 @@ A session is not a file, it is a folder, named for when it started and what it r
 └─ Analysis/
    ├─ CoverageReport.json        computed in Python — states, actions, refused_actions
    ├─ ErrorSignature.json        clustered failures, each with its reproduction
-   ├─ report.md                  written by the LLM, from Log/
+   ├─ report.html                the computed tables, plus the analyst's reading below each
+   ├─ findings.json              one per flagged row: verdict, reading, the log lines it read
    └─ proposals/                 what to change before the next run — reviewed, then applied</pre>
 
 - <b><code>session.json</code> is what makes the rest replayable.</b> The seed, the worker configs, and <code>modelVersion</code> — a hash of the Action Database and the policy rows. A reproduction replayed against a different model is not the same test, so Replay prints the mismatch rather than pretending. On a bench it also carries <code>hostToDeviceClockOffsetMs</code>, the delta-T from Fig. 3's handshake: without it, <code>DeviceLog</code> timestamps cannot be lined up against anything else in the folder.
@@ -99,6 +100,7 @@ flowchart LR
 - <b>A regression proposal is a slice, not a new file.</b> It names a span of <code>Log/ActionSchedule.json</code> plus the state that span started from — the same shape Replay already consumes, which is why accepting one costs nothing but review.
 - <b>A probability proposal must show the whole row.</b> Rows sum to 1, so raising one entry lowers the others; the proposal renders the row after renormalization, because the entries it quietly lowers are the part worth arguing about.
 - <b>A model correction is the one a person must judge, not merely approve.</b> "The device accepted a call the model calls illegal" has two readings — the guard is too strict, or the device is missing a check. The first is a documentation fix; the second is a bug in the product. The LLM can put both on the table; only a person decides which one it is.
+- <b>A <code>targeted_run</code> asks for a cell, not a change.</b> It names a component, a state and the actions to probe there, written from a finding on a flagged row. Once a person accepts it, the planner adds those actions to that component's probe pool and lists the proposal in the plan's <code>fromProposals</code>; a pending one never reaches a plan.
 - <b>Rejected proposals keep their reason.</b> <code>index.json</code> holds the whole list with its verdicts, so the same suggestion arriving three releases running reads as a pattern rather than as a new idea.
 
 ## Action taxonomy — `category` × `executor` × `component`

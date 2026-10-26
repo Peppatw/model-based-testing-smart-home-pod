@@ -19,11 +19,21 @@ LLM analyst reimplements them, and two implementations of the same header drift 
 precisely what happened to the Blueprint's Slide 01 against `policy.CHAINS`, in a project whose
 test suite exists to stop documents disagreeing with data.
 
-What this stand-in does NOT do, on purpose: it never reads `Log/EngineEvents.jsonl` beyond the
-elapsed figures the Summary needs. A trend with no ErrorSignature to cluster on (a rising
-`elapsedMs`, a repeated refusal that never fails its own assertion) only shows up to something
-reading the raw log — the gap a real LLM analyst closes and this one is honest about not
-attempting.
+**Compute, flag, investigate, propose.** The skeleton computes every table. `anomaly.find` then
+marks the rows that are off — most of them raised no ErrorSignature — and gives each one pointers
+into `EngineEvents.jsonl` and `dut.log`. An analyst investigates each flag from those lines alone
+and returns a *finding*: one verdict out of `VERDICTS`, the evidence it read, and what would settle
+it if it is not settled. Proposals are written from findings, and a `targeted_run` proposal is
+what the next plan reads back once a person accepts it.
+
+`device_bug` is the one verdict that needs more than reading. `write_back` refuses it unless the
+finding names what confirmed it — a replay that reproduced, a soak, a baseline — because a log
+excerpt can make a bug plausible and only re-running it makes it a bug.
+
+What this stand-in does NOT do, on purpose: read the excerpts. Its findings come from the flag's
+kind and its pointers' metadata, so most of them end `inconclusive` with the step that would
+decide them. That is the stage a real LLM analyst is for, and the one this rule-based version is
+honest about not attempting.
 
     python3 -m pod_mbt.run testcases/TC-01/chaos.json --defect accepts_illegal --save test_result/
     python3 -m pod_mbt.analyze test_result/<the folder just printed>/
@@ -31,12 +41,14 @@ attempting.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Optional, Protocol
 
+from . import anomaly as A
 from . import html as H
 from .figure import chain_figure
 from .model import ACTION_DB
@@ -51,7 +63,7 @@ from .policy import CHAINS, FAULTS, load_test_case
 # numbers and then reads them, and the proposals are written from those readings rather than from
 # the raw folder: an analyst that cannot explain a finding in its own section has no business
 # proposing a change from it.
-ANALYSED = ("crash", "coverage", "execution", "monitor", "failures", "proposals")
+ANALYSED = ("crash", "coverage", "execution", "monitor", "failures", "anomalies", "proposals")
 SLOTS = tuple(f"{k}.analysis" for k in ANALYSED)
 
 # The report's shape, in order. `crash` renders only when there was one and everything below it
@@ -59,7 +71,21 @@ SLOTS = tuple(f"{k}.analysis" for k in ANALYSED)
 # A section with nothing to say renders as a marked blank rather than vanishing: a reader who
 # cannot tell "measured nothing" from "does not measure this" has to go and ask.
 SECTIONS = ("summary", "testcase", "crash", "coverage", "execution",
-            "monitor", "failures", "proposals")
+            "monitor", "failures", "anomalies", "proposals")
+
+# What an investigation may conclude about one flag. Anything else is refused at write-back.
+VERDICTS = {
+    "device_bug": "the device did something a healthy device would not — needs `confirmedBy`",
+    "model_error": "the device is right and the model is not: a guard, a postcondition, a "
+                   "budget or a probability row says the wrong thing",
+    "model_gap": "the device did something the model has no action or chain row for at all",
+    "config_gap": "the plan or harness, not the device or the model: a missing worker, a lapsed "
+                  "cleanup, a schedule that cannot reach the cell",
+    "environment": "the bench, not the device: RF, the AP, the controller",
+    "inconclusive": "the excerpt does not decide it — `decidedBy` says what would",
+}
+# What can turn a plausible bug into a bug. A reading is never on this list.
+CONFIRMATIONS = ("replay", "soak", "baseline")
 
 # The order the pieces are assembled in — data, not control flow, so adding a section does not
 # mean finding the right place in a function.
@@ -84,6 +110,7 @@ class Analysis:
     slots: dict[str, str] = field(default_factory=dict)
     assets: dict[str, str] = field(default_factory=dict)
     proposals: list[dict[str, Any]] = field(default_factory=list)
+    findings: list[dict[str, Any]] = field(default_factory=list)   # one per anomaly read
 
 
 class Analyst(Protocol):
@@ -385,6 +412,43 @@ def _resource_section(run_dir: Path) -> str:
     return "\n".join(L)
 
 
+def _anomaly_section(flags: list[A.Anomaly]) -> str:
+    """The rows worth a closer read, and where each one is in the logs.
+
+    Rules, not judgement: each row names the rule that raised it. The pointer column is the point
+    of the table — it is what an investigator opens, instead of opening the log.
+    """
+    if not flags:
+        return ('<div class="empty">No row crossed a rule. That is a statement about these '
+                "rules, not about the device.</div>")
+
+    def where(f: A.Anomaly) -> str:
+        parts = [H.code(x) for x in (f.component, f.state, f.action) if x]
+        return " / ".join(parts) or '<span class="dash">&mdash;</span>'
+
+    def ptr(f: A.Anomaly) -> str:
+        if not f.pointers:
+            return '<span class="dash">&mdash;</span>'
+        p = f.pointers[0]
+        out = f"EngineEvents:{p['engineLine']}"
+        if p.get("dutLine"):
+            out += f" · dut:{p['dutLine']}"
+        more = f" +{len(f.pointers) - 1}" if len(f.pointers) > 1 else ""
+        return H.code(out) + more
+
+    rows = [[H.code(f.id), H.esc(f.kind), where(f), H.esc(f.figure),
+             H.num(f.count) if f.pointers else '<span class="dash">&mdash;</span>', ptr(f)]
+            for f in flags]
+    kinds = sorted({f.kind for f in flags}, key=list(A.KINDS).index)
+    note = " ".join(f"<b>{H.esc(k)}</b> &mdash; {H.esc(A.KINDS[k])}." for k in kinds)
+    quiet = sum(1 for f in flags if f.kind != "signature")
+    head = (f"<p>{len(flags)} flagged, {quiet} of them with no ErrorSignature behind them. "
+            "Read one with <code>python3 -m pod_mbt.anomaly &lt;run&gt; --excerpt ANOM-NN</code>."
+            "</p>")
+    return head + H.table(["id", "kind", "where", "figure", "events", "first pointer"], rows,
+                          right=[4], title="Flagged for investigation", note=note)
+
+
 def skeleton(run_dir: Path, baseline: Optional[Path] = None) -> Report:
     """Title, Summary, the test-case figure, and every table whose numbers are computed.
 
@@ -476,6 +540,7 @@ def skeleton(run_dir: Path, baseline: Optional[Path] = None) -> Report:
     ])
 
     blank = lambda what: f'<div class="empty">{what}</div>'
+    flags = A.find(run_dir, coverage, signatures)
 
     # `(title, body)`, not a rendered section: the analysis slot goes *inside* its section, so
     # the section cannot be assembled until an analyst has filled it.
@@ -489,11 +554,13 @@ def skeleton(run_dir: Path, baseline: Optional[Path] = None) -> Report:
         "execution": ("Execution result", blank("Not yet converted.")),
         "monitor": ("System monitor", blank("Not yet converted.")),
         "failures": ("Failures", blank("Not yet converted.")),
+        "anomalies": ("Anomalies", _anomaly_section(flags)),
         "proposals": ("Proposals", blank("Not yet converted.")),
     }
     return Report(sections=sections, assets={"testcase.svg": svg},
                   facts={"session": session, "coverage": coverage, "signatures": signatures,
                          "baseline": base_name, "baselineCoverage": base_cov,
+                         "anomalies": flags,
                          "measuredElapsedMs": measured, "stopReason": reason,
                          "modelVersion": session.get("modelVersion")})
 
@@ -507,6 +574,11 @@ class RuleBasedAnalyst:
     too strict, or the device is missing a check) and becomes a `model_correction` proposal for a
     person to judge; everything else clustered at all, which already means it is worth keeping as
     a regression, becomes a `regression` proposal carrying the reproduction itself.
+
+    Every flag gets a finding, decided by its kind and by who reached it — never by reading the
+    excerpt, which is the step a model is for. A flag with a cell to aim at becomes a
+    `targeted_run` proposal: the next plan probes that state with that action, once a person
+    accepts it.
     """
 
     def analyze(self, run_dir: Path, baseline: Optional[Path] = None) -> Analysis:
@@ -515,7 +587,11 @@ class RuleBasedAnalyst:
         coverage = rep.facts["coverage"]
         base_version = rep.facts["modelVersion"]
 
+        flags: list[A.Anomaly] = rep.facts["anomalies"]
+        findings = [self.investigate(f, flags) for f in flags]
+
         slots = {
+            "anomalies.analysis": self._read_anomalies(findings),
             "coverage.analysis": self._read_coverage(coverage),
             "execution.analysis": self._read_execution(coverage),
             "monitor.analysis": "",
@@ -558,8 +634,102 @@ class RuleBasedAnalyst:
                                  "regression.",
                     "status": "pending",
                 })
+        for f in flags:
+            p = self._target(f, base_version)
+            if p:
+                proposals.append(p)
         return Analysis(sections=rep.sections, slots=slots, assets=rep.assets,
-                        proposals=proposals)
+                        proposals=proposals, findings=findings)
+
+    @staticmethod
+    def investigate(f: A.Anomaly, flags: list[A.Anomaly]) -> dict[str, Any]:
+        """One flag's finding, from its kind and its pointers' metadata.
+
+        A real analyst reads `anomaly.excerpt(run_dir, f)` and writes the same envelope. This one
+        reaches a verdict only where the metadata alone decides it, and otherwise names the
+        candidates and the step that would choose between them.
+        """
+        workers = sorted({p["worker"] for p in f.pointers if p.get("worker")})
+        # The same action raised as a signature and as an edge is one behaviour seen twice: the
+        # signature says it failed, the edge says from which state.
+        related = sorted(g.id for g in flags if g is not f and g.action and g.action == f.action
+                         and "signature" in (g.kind, f.kind))
+        verdict, candidates, decided, reading = "inconclusive", [], "", ""
+        if f.kind == "signature" and f.figure.startswith("illegal_call_accepted"):
+            candidates = ["device_bug", "model_error"]
+            decided = "replay the reproduction against this firmware; reproduced is device_bug, "                       "and a guard the device owner argues is too strict is model_error"
+            reading = "the device acted on a call its guard says it must refuse"
+        elif f.kind == "signature":
+            candidates = ["device_bug", "environment"]
+            decided = "replay on a second bench; reproducing on both rules out environment"
+            reading = "a legal call did not reach its postcondition"
+        elif f.kind == "unexpected_edge" and workers and set(workers) <= {"fault-clock"}:
+            # Only the fault schedule reached this cell, so the walk's chain never had to say
+            # what happens there — the model has no row for where a fault leaves the device.
+            verdict, candidates = "model_gap", ["model_gap"]
+            reading = "reached only by the fault clock: the chain has no row for the state a "                       "fault leaves behind"
+        elif f.kind == "unexpected_edge":
+            candidates = ["device_bug", "model_error"]
+            decided = "read the excerpt: guard not held and the device moved anyway is the "                       "related signature seen from its state; guard held and it landed elsewhere "                       "is the chain's destination being wrong"
+            reading = "the device left this state for one the chain does not predict"
+        elif f.kind == "near_budget":
+            candidates = ["device_bug", "model_error"]
+            decided = "compare against a baseline run on the previous firmware: slower there "                       "too is a tight budget, slower only here is a regression"
+            reading = "passing, but close enough to its budget that it will not stay passing"
+        elif f.kind == "resource_growth":
+            candidates = ["device_bug"]
+            decided = "a soak at twice this duration: still climbing at the end is a leak, "                       "levelling off is a bounded cache"
+            reading = "still climbing when the run ended"
+        elif f.kind == "cleanup_lapsed":
+            verdict, candidates = "config_gap", ["config_gap"]
+            reading = "the harness never restored the device, so every figure after this "                       "point was measured on a perturbed device"
+        return {"anomaly": f.id, "verdict": verdict, "candidates": candidates,
+                "reading": reading, "decidedBy": decided, "related": related,
+                "evidence": {"engineLines": [p["engineLine"] for p in f.pointers],
+                             "dutLines": [p["dutLine"] for p in f.pointers if p.get("dutLine")],
+                             "workers": workers},
+                "confirmedBy": None, "by": "RuleBasedAnalyst"}
+
+    @staticmethod
+    def _target(f: A.Anomaly, base_version: Optional[str]) -> Optional[dict[str, Any]]:
+        """A `targeted_run` for a flag that names a cell: probe that state with that action.
+
+        Signatures already carry a reproduction and get their proposal above; a resource series
+        and a lapsed cleanup name no cell to aim at, so their next step lives in the finding.
+        """
+        if f.kind not in ("unexpected_edge", "near_budget") or not (f.component and f.action):
+            return None
+        key = f"{f.kind}:{f.component}:{f.state}:{f.action}"
+        return {
+            "id": f"PROP-{hashlib.sha1(key.encode()).hexdigest()[:8]}",
+            "type": "targeted_run",
+            "baseVersion": base_version,
+            "target": {"file": "next_run.json", "key": "probe"},
+            "current": None,
+            "proposed": {"component": f.component, "state": f.state, "actions": [f.action]},
+            "evidence": {"anomaly": f.id, "events": f.count,
+                         "engineLines": [p["engineLine"] for p in f.pointers]},
+            "rationale": f"{f.id}: {f.figure}. A probe aimed at this cell re-runs it on purpose "
+                         "rather than waiting for the walk to land there.",
+            "status": "pending",
+        }
+
+    @staticmethod
+    def _read_anomalies(findings: list[dict[str, Any]]) -> str:
+        if not findings:
+            return ""
+        rows = []
+        for f in findings:
+            v = f["verdict"] if f["verdict"] != "inconclusive" else \
+                "inconclusive: " + " or ".join(f["candidates"])
+            then = f" Decided by: {H.esc(f['decidedBy'])}." if f["decidedBy"] else ""
+            rel = f" Same behaviour as {', '.join(f['related'])}." if f["related"] else ""
+            rows.append(f"<li><code>{f['anomaly']}</code> <b>{H.esc(v)}</b> &mdash; "
+                        f"{H.esc(f['reading'])}.{rel}{then}</li>")
+        settled = sum(1 for f in findings if f["verdict"] != "inconclusive")
+        return (f"<p>{settled} of {len(findings)} settled from metadata alone. The rest need "
+                "their excerpt read, and no finding here is <code>device_bug</code>: that takes "
+                "a replay, a soak or a baseline, not a reading.</p><ul>" + "".join(rows) + "</ul>")
 
     @staticmethod
     def _read_coverage(c: dict) -> str:
@@ -639,6 +809,14 @@ def write_back(run_dir: Path, analysis: Analysis) -> None:
     unknown = set(analysis.slots) - set(SLOTS)
     if unknown:
         raise ValueError(f"analyst wrote outside its slots: {sorted(unknown)}")
+    for f in analysis.findings:
+        if f.get("verdict") not in VERDICTS:
+            raise ValueError(f"{f.get('anomaly')}: verdict {f.get('verdict')!r} is not one of "
+                             f"{sorted(VERDICTS)}")
+        conf = f.get("confirmedBy") or {}
+        if f["verdict"] == "device_bug" and conf.get("kind") not in CONFIRMATIONS:
+            raise ValueError(f"{f.get('anomaly')}: device_bug needs confirmedBy.kind in "
+                             f"{CONFIRMATIONS} — a reading makes a bug plausible, not confirmed")
 
     out = run_dir / "Analysis"
     out.mkdir(parents=True, exist_ok=True)
@@ -675,6 +853,8 @@ def write_back(run_dir: Path, analysis: Analysis) -> None:
     index = [{"id": p["id"], "type": p["type"], "status": p["status"]}
              for p in analysis.proposals]
     (prop_dir / "index.json").write_text(json.dumps(index, indent=2) + "\n")
+    (out / "findings.json").write_text(json.dumps(analysis.findings, indent=2,
+                                                  ensure_ascii=False) + "\n")
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -694,6 +874,8 @@ def main(argv: list[str] | None = None) -> int:
     filled = len([v for v in analysis.slots.values() if v])
     print(f"  sections       {len([k for k in SECTIONS if analysis.sections.get(k)])} rendered, "
           f"{filled}/{len(SLOTS)} analysis slots written")
+    print(f"  findings       {len(analysis.findings)} flag(s) read, "
+          f"{sum(1 for f in analysis.findings if f['verdict'] != 'inconclusive')} settled")
     print(f"  proposals      {len(analysis.proposals)} written to "
           f"{a.run_dir / 'Analysis' / 'proposals'}")
     return 0

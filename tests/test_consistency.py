@@ -75,6 +75,17 @@ def _rejects_unknown_slot(run) -> bool:
     return False
 
 
+def _rejects_unconfirmed_bug(run) -> bool:
+    """A reading can make a bug plausible; only a replay, a soak or a baseline confirms one."""
+    from pod_mbt.analyze import Analysis, write_back
+    try:
+        write_back(run, Analysis(findings=[{"anomaly": "ANOM-01", "verdict": "device_bug",
+                                            "confirmedBy": None}]))
+    except ValueError:
+        return True
+    return False
+
+
 def main() -> int:
     pol = MarkovPolicy()
 
@@ -247,6 +258,23 @@ def main() -> int:
         p2 = RuleBasedPlanner().plan(Intent(changed=["wifi"], minutes=480), hist2)
         check("and the planner stops sweeping, because the reason is gone",
               not p2["sweep"] and bool(p2["walk"]))
+        folder = next(pathlib.Path(tmp).rglob("session.json")).parent
+        pdir = folder / "Analysis" / "proposals"
+        pdir.mkdir(parents=True, exist_ok=True)
+        target = {"id": "PROP-t0000001", "type": "targeted_run", "status": "pending",
+                  "proposed": {"component": "wifi", "state": "Connected",
+                               "actions": ["api_connect_wifi"]}}
+        (pdir / "PROP-t0000001.json").write_text(json.dumps(target))
+        p3 = RuleBasedPlanner().plan(Intent(changed=["wifi"], minutes=480),
+                                     History.load(pathlib.Path(tmp)))
+        check("a pending targeted_run does not reach the plan", not p3["fromProposals"])
+        target["status"] = "accepted"
+        (pdir / "PROP-t0000001.json").write_text(json.dumps(target))
+        p4 = RuleBasedPlanner().plan(Intent(changed=["wifi"], minutes=480),
+                                     History.load(pathlib.Path(tmp)))
+        wifi_pool = next((p["pool"] for p in p4["probe"] if p["component"] == "wifi"), [])
+        check("an accepted one joins the probe pool for its component",
+              p4["fromProposals"] == ["PROP-t0000001"] and "api_connect_wifi" in wifi_pool)
 
     print("\nA run folder is written, and replays")
     import random
@@ -317,8 +345,33 @@ def main() -> int:
               == html_out.count("Analysis &mdash; written, not measured"))
         check("an analyst cannot write outside its slots",
               _rejects_unknown_slot(run))
-        check("a proposal was written per signature",
-              len(analysis.proposals) == len(loaded.get("errorSignatures", [])))
+        sig_hashes = {sg["signature_hash"] for sg in loaded.get("errorSignatures", [])}
+        check("every signature has a proposal written from it",
+              sig_hashes <= {pr["evidence"].get("signatureHash") for pr in analysis.proposals})
+
+        print("\nFlagged rows point at the log lines behind them")
+        from pod_mbt.analyze import VERDICTS
+        from pod_mbt.anomaly import find
+        flags = find(run)
+        eng = (run / "Log" / "EngineEvents.jsonl").read_text().splitlines()
+        dut = (run / "Log" / "DeviceLog" / "dut.log").read_text().splitlines()
+        ptrs = [(f, q) for f in flags for q in f.pointers]
+        check(f"every pointer lands on a trigger for the flagged action — {len(ptrs)} checked",
+              all(json.loads(eng[q["engineLine"] - 1])["event_type"] == "action_trigger"
+                  and json.loads(eng[q["engineLine"] - 1])["details"]["action"] == f.action
+                  for f, q in ptrs))
+        check("a dut.log pointer names the same call",
+              all(f": {f.action} " in dut[q["dutLine"] - 1] + " "
+                  for f, q in ptrs if q.get("dutLine")))
+        check("every signature is flagged, so nothing clustered escapes investigation",
+              sig_hashes <= {f.signatureHash for f in flags})
+        check("the report carries the anomaly table",
+              "Flagged for investigation" in html_out)
+        check("one finding per flag, each with a known verdict",
+              len(analysis.findings) == len(flags)
+              and all(f["verdict"] in VERDICTS for f in analysis.findings))
+        check("a device_bug verdict with nothing confirming it is refused",
+              _rejects_unconfirmed_bug(run))
         if analysis.proposals:
             p = json.loads((run / "Analysis" / "proposals"
                             / f"{analysis.proposals[0]['id']}.json").read_text())

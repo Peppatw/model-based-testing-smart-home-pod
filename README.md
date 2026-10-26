@@ -40,6 +40,13 @@ python3 -m pod_mbt.run testcases/TC-01/pure-fuzzy.json             # no flow, no
 python3 -m tests.test_consistency                    # does the code still match the docs?
 ```
 
+Read a finished run — tables, then the rows worth reading, then a finding for each:
+
+```bash
+python3 -m pod_mbt.analyze test_result/<run folder>/                  # report.html, findings.json, proposals/
+python3 -m pod_mbt.anomaly test_result/<run folder>/ --excerpt ANOM-06  # the log lines behind one flag
+```
+
 Find a bug, save it, replay it, verify the fix:
 
 ```bash
@@ -61,7 +68,8 @@ Nothing to install: standard library only, Python 3.10+.
 | `pod_mbt/driver.py` | The `Driver` seam, plus a simulator that can be given defects |
 | `pod_mbt/record.py` | `TestRecorder`, `CoverageTracker`, `ErrorSignature` |
 | `pod_mbt/replay.py` | `ReplayEngine` — runs an `ErrorSignature`'s reproduction again |
-| `pod_mbt/analyze.py` | `RuleBasedAnalyst` — reads a finished run, writes `report.md` + proposals |
+| `pod_mbt/anomaly.py` | Flags the rows of a run worth reading, each with pointers into `EngineEvents` and `dut.log` |
+| `pod_mbt/analyze.py` | `RuleBasedAnalyst` — tables, findings per flag, `report.html` + proposals |
 | `pod_mbt/run.py` | The CLI: load a config, run the session, save the folder |
 | `testcases/TC-01/` | Session configs, the same shape the Blueprint prints |
 | `tests/` | Code-versus-docs consistency checks |
@@ -136,7 +144,7 @@ immediately by an assertion that reads the state instead of the reply) and
 | 02 Architecture Overview | the package as a whole |
 | 03 Data Structure | `pod_mbt/model.py`, `pod_mbt/policy.py` |
 | 04 Runtime Flow | `pod_mbt/engine.py` |
-| 05 What AI Does Here | `pod_mbt/record.py`, `pod_mbt/analyze.py` |
+| 05 What AI Does Here | `pod_mbt/record.py`, `pod_mbt/anomaly.py`, `pod_mbt/analyze.py` |
 | 06 Action-Led Test | `WorkerKind.PROBE` and `WorkerKind.SWEEP` in `pod_mbt/engine.py` |
 | 07 Pure Fuzz Test | `testcases/TC-01/pure-fuzzy.json` |
 | 08 Run Planner | `pod_mbt/plan.py` |

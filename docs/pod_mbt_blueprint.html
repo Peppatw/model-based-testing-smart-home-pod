@@ -283,6 +283,44 @@
     font-family:var(--font-mono);font-size:.92em;color:var(--ink);
     background:var(--surface-2);padding:1px 5px;border-radius:3px;
   }
+  /* Slide 05 Fig. 3: the leak chart. Series hues are the reference categorical slots 1-3,
+     stepped separately for the dark surface rather than flipped. */
+  .leakviz{--s1:#2a78d6;--s2:#eb6834;--s3:#1baf7a;}
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]) .leakviz{--s1:#3987e5;--s2:#d95926;--s3:#199e70;}
+  }
+  :root[data-theme="dark"] .leakviz{--s1:#3987e5;--s2:#d95926;--s3:#199e70;}
+  .lv-legend{display:flex;flex-wrap:wrap;gap:6px 18px;font-size:12.5px;color:var(--ink-muted);margin-bottom:8px;}
+  .lv-legend span{display:inline-flex;align-items:center;gap:6px;}
+  .lv-k{display:inline-block;width:14px;height:2px;border-radius:1px;}
+  .lv-k.lv-s1{background:var(--s1);} .lv-k.lv-s2{background:var(--s2);} .lv-k.lv-s3{background:var(--s3);}
+  .lv-k.lv-kband{height:10px;background:var(--ink-muted);opacity:.18;}
+  .lv-wrap{position:relative;}
+  .lv-svg{display:block;width:100%;height:auto;font-family:var(--font-mono);}
+  .lv-grid{stroke:var(--line);stroke-width:1;}
+  .lv-zero{stroke:var(--ink-muted);stroke-width:1;opacity:.6;}
+  .lv-tick{font-size:10.5px;fill:var(--ink-muted);}
+  .lv-axis{font-size:11px;fill:var(--ink-muted);letter-spacing:.03em;}
+  .lv-lab{font-size:11.5px;fill:var(--ink);}
+  .lv-band{fill:var(--ink-muted);opacity:.18;}
+  .lv-line{fill:none;stroke-width:2;stroke-linejoin:round;stroke-linecap:round;}
+  .lv-line.lv-s1{stroke:var(--s1);} .lv-line.lv-s2{stroke:var(--s2);} .lv-line.lv-s3{stroke:var(--s3);}
+  .lv-dot{stroke:var(--surface);stroke-width:2;}
+  .lv-dot.lv-s1{fill:var(--s1);} .lv-dot.lv-s2{fill:var(--s2);} .lv-dot.lv-s3{fill:var(--s3);}
+  .lv-bar{fill:var(--ink-muted);opacity:.45;}
+  .lv-cross{stroke:var(--ink-muted);stroke-width:1;stroke-dasharray:3 3;}
+  .lv-hit{fill:transparent;cursor:crosshair;touch-action:pan-y;}
+  .lv-tip{position:absolute;top:0;pointer-events:none;background:var(--surface);color:var(--ink);
+    border:1px solid var(--line);border-radius:4px;padding:7px 10px;font-size:12px;line-height:1.55;
+    font-family:var(--font-mono);white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,.12);}
+  .lv-tip b{font-family:var(--font-body);}
+  .lv-tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;}
+  .lv-data{margin-top:10px;font-size:12.5px;color:var(--ink-muted);}
+  .lv-data summary{cursor:pointer;}
+  /* Slide 05: figures right-aligned. */
+  .ref-table th.r,.ref-table td.r{text-align:right;font-family:var(--font-mono);
+    font-variant-numeric:tabular-nums;white-space:nowrap;}
+
 
   /* ---------- Subhead + code panel ---------- */
   .subhead{
@@ -938,42 +976,157 @@ flowchart TD
   <section id="output">
     <p class="section-eyebrow">Slide 05</p>
     <h2>What AI Does Here</h2>
-    <p class="claim">Once the engine stops, there's a folder: <code>session.json</code>, <code>Log/</code>, and two files already computed inside <code>Analysis/</code> — <code>ErrorSignature.json</code> and <code>CoverageReport.json</code>. <code>session.json</code> is the release note — what config, what seed, what model version, and a summary of the result. <code>Log/</code> is the process record — every action issued, every state change, every telemetry sample, exactly as it happened. <code>ErrorSignature</code> records every abnormal behavior the run found; <code>CoverageReport</code> answers a different question — not what went wrong, but how much of the device this run actually reached, by counting.</p>
+    <p class="claim">Once the engine stops, there's a folder of logs. Reading it takes four steps. In the first two, <b>Python counts and flags</b>. In the last two, <b>the AI reads and proposes</b>. One run carries the example the whole way through: <code>CHAOS-003</code>, TC-01, 24 hours.</p>
 
-    <p class="subhead">ErrorSignature — four trigger types, none of them "crash"</p>
-    <p class="claim">Every failed call clusters under exactly one of four <code>trigger_type</code> values, decided in <code>EngineLoop.run_step()</code> the instant a call's guard and its actual result disagree:</p>
-
+    <p class="subhead">① Compute — what did the whole run do?</p>
+    <p class="claim">Python counts every call in the run and sorts the totals by component. No AI is involved, and every number has exactly one right answer.</p>
     <div class="table-scroll">
-      <pre class="code-json">postcondition_failure    guard held, call went through, postcondition never became true
-postcondition_timeout    guard held, postcondition never resolved within its budget
-illegal_call_accepted    guard did NOT hold, but the device did the call anyway
-unexpected_destination   guard held and postcondition passed, but landed somewhere the chain didn't expect</pre>
+      <table class="ref-table">
+        <thead><tr><th>component</th><th class="r">calls</th><th class="r">illegal calls issued</th><th class="r">failed</th><th class="r">failure rate</th><th class="r">pairs reached</th></tr></thead>
+        <tbody>
+          <tr><td>wifi</td><td class="r">16,971</td><td class="r">2</td><td class="r">1</td><td class="r">0.01%</td><td class="r">13 / 39</td></tr>
+          <tr><td>bt</td><td class="r">28,657</td><td class="r">2,235</td><td class="r">1,131</td><td class="r">3.95%</td><td class="r">13 / 40</td></tr>
+          <tr><td>matter</td><td class="r">8,046</td><td class="r">2,379</td><td class="r">1,203</td><td class="r">14.95%</td><td class="r">7 / 15</td></tr>
+          <tr><td>total</td><td class="r">53,675</td><td class="r">4,616</td><td class="r">2,335</td><td class="r">4.35%</td><td class="r">33 / 94</td></tr>
+        </tbody>
+      </table>
     </div>
 
-    <p class="claim">Same signature, same bucket: <code>trigger_type:action_name</code> is the key <code>TestRecorder.cluster()</code> groups on, so ten instances of wifi's <code>api_connect_wifi</code> timing out become one <code>ErrorSignature</code> with <code>occurrence_count: 10</code>, each carrying the same reproduction shape.</p>
-
-    <p class="subhead">CoverageReport — set arithmetic, wifi as the example</p>
-    <p class="claim">Everything here comes out of plain Python sets accumulated during the run — <code>transitions</code>, <code>pairs</code>, <code>accepted</code>, <code>issued</code> — no AI in the counting. wifi's row from a real nightly run:</p>
-
+    <p class="subhead">② Flag — which numbers are off?</p>
+    <p class="claim">Python checks the totals against fixed rules and marks what stands out. Each mark comes with the line numbers in the log where that behaviour happened.</p>
     <div class="table-scroll">
-      <pre class="code-json">"wifi": {"states": 3, "transitions": 9, "transitionsWalked": 9, "pairs": 42, "pairsTried": 12}</pre>
+      <table class="ref-table">
+        <thead><tr><th>flag</th><th>why it stands out</th><th>where to read</th></tr></thead>
+        <tbody>
+          <tr><td>matter failures</td><td>14.95% — four times bt's rate</td><td><code>EngineEvents:192 · dut:69</code></td></tr>
+          <tr><td>wifi rejection</td><td>16,971 calls, only 2 of them illegal — wifi's refusals were barely tested</td><td>&mdash;</td></tr>
+          <tr><td>matter fd</td><td>open files and sockets (file descriptors) up 62% and still climbing at hour 24</td><td><code>ResourceSnapshot</code></td></tr>
+        </tbody>
+      </table>
     </div>
 
+    <p class="subhead">③ Investigate — why?</p>
+    <p class="claim">What the AI looks at depends on the kind of flag. A failure leaves lines in a log, so the AI reads those lines. A leak leaves a curve, so the AI looks at a chart.</p>
+
+    <p class="claim"><b>Matter failures: read the log.</b> The flag points to this call:</p>
+    <div class="table-scroll">
+      <pre class="code-json">EngineEvents:192  api_start_matter   matter = Uncommissioned, wifi = Streaming   guard_held: false
+EngineEvents:194  oracle: passed false — expected "state unchanged ∧ error returned"
+dut.log:69        matter: api_start_matter applied</pre>
+    </div>
+    <p class="claim">The guard requires <code>wifi = Connected</code>. The device started commissioning anyway, so it accepted a call it should have refused. Back in table ①, the same pattern shows up twice: bt accepted 1,131 of its 2,235 illegal calls, and matter accepted 1,203 of its 2,379. Both are about 51%. Two unrelated stacks failing at the same rate looks like one missing check in the device, not two wrong guards in the model. <b>The verdict is a likely device bug, not yet a confirmed one</b>: only a replay that reproduces it confirms it.</p>
+
+    <p class="claim"><b>Matter fd: look at the chart.</b></p>
+    <figure class="plate leakviz" id="leakviz" data-rows='[{"h":0,"fd":96,"mb":113.1,"fdp":0.0,"mbp":0.0,"bt":0.0,"lo":0.0,"hi":0.0,"calls":133},{"h":1,"fd":97,"mb":114.1,"fdp":1.0,"mbp":0.9,"bt":2.4,"lo":-2.2,"hi":2.4,"calls":126},{"h":2,"fd":101,"mb":114.4,"fdp":5.2,"mbp":1.2,"bt":3.2,"lo":-1.9,"hi":0.2,"calls":159},{"h":3,"fd":103,"mb":116.1,"fdp":7.3,"mbp":2.7,"bt":5.7,"lo":-1.5,"hi":2.9,"calls":142},{"h":4,"fd":105,"mb":123.4,"fdp":9.4,"mbp":9.1,"bt":4.9,"lo":-4.3,"hi":2.4,"calls":116},{"h":5,"fd":108,"mb":123.0,"fdp":12.5,"mbp":8.8,"bt":5.6,"lo":-1.0,"hi":2.9,"calls":137},{"h":6,"fd":111,"mb":127.3,"fdp":15.6,"mbp":12.6,"bt":7.2,"lo":-4.3,"hi":2.9,"calls":149},{"h":7,"fd":112,"mb":126.2,"fdp":16.7,"mbp":11.6,"bt":6.6,"lo":-2.4,"hi":2.8,"calls":136},{"h":8,"fd":116,"mb":130.1,"fdp":20.8,"mbp":15.1,"bt":8.8,"lo":-1.6,"hi":2.9,"calls":145},{"h":9,"fd":119,"mb":131.2,"fdp":24.0,"mbp":16.1,"bt":4.8,"lo":-2.2,"hi":4.3,"calls":134},{"h":10,"fd":122,"mb":132.7,"fdp":27.1,"mbp":17.4,"bt":8.3,"lo":-2.9,"hi":4.3,"calls":150},{"h":11,"fd":124,"mb":135.5,"fdp":29.2,"mbp":19.8,"bt":9.4,"lo":-2.9,"hi":4.1,"calls":123},{"h":12,"fd":126,"mb":139.0,"fdp":31.2,"mbp":23.0,"bt":10.3,"lo":-2.9,"hi":2.8,"calls":148},{"h":13,"fd":128,"mb":141.0,"fdp":33.3,"mbp":24.7,"bt":10.2,"lo":-4.3,"hi":6.5,"calls":151},{"h":14,"fd":131,"mb":142.3,"fdp":36.5,"mbp":25.9,"bt":11.9,"lo":-1.9,"hi":5.0,"calls":139},{"h":15,"fd":135,"mb":144.1,"fdp":40.6,"mbp":27.4,"bt":13.6,"lo":-4.3,"hi":4.7,"calls":155},{"h":16,"fd":135,"mb":146.6,"fdp":40.6,"mbp":29.7,"bt":12.7,"lo":-4.3,"hi":6.8,"calls":144},{"h":17,"fd":139,"mb":150.2,"fdp":44.8,"mbp":32.8,"bt":14.4,"lo":-2.2,"hi":6.6,"calls":142},{"h":18,"fd":142,"mb":155.9,"fdp":47.9,"mbp":37.9,"bt":13.2,"lo":-4.3,"hi":7.6,"calls":160},{"h":19,"fd":145,"mb":152.9,"fdp":51.0,"mbp":35.2,"bt":16.0,"lo":-4.3,"hi":5.8,"calls":149},{"h":20,"fd":146,"mb":154.8,"fdp":52.1,"mbp":36.9,"bt":13.0,"lo":-2.4,"hi":8.9,"calls":137},{"h":21,"fd":149,"mb":156.5,"fdp":55.2,"mbp":38.4,"bt":16.6,"lo":-2.2,"hi":7.7,"calls":141},{"h":22,"fd":152,"mb":160.8,"fdp":58.3,"mbp":42.2,"bt":17.2,"lo":-3.1,"hi":7.5,"calls":144},{"h":23,"fd":155,"mb":163.4,"fdp":61.5,"mbp":44.6,"bt":17.4,"lo":-4.3,"hi":9.4,"calls":137},{"h":24,"fd":156,"mb":165.7,"fdp":62.5,"mbp":46.6,"bt":18.7,"lo":-1.1,"hi":8.1,"calls":null}]'>
+      <div class="plate-frame">
+        <div class="lv-legend" aria-hidden="true"><span><i class="lv-k lv-s1"></i>matter fd</span><span><i class="lv-k lv-s2"></i>matter memory</span><span><i class="lv-k lv-s3"></i>bluetoothd memory</span><span><i class="lv-k lv-kband"></i>4 other processes (range)</span></div>
+        <div class="lv-wrap">
+<svg class="lv-svg" viewBox="0 0 720 392" role="img" aria-labelledby="lv-t lv-d">
+<title id="lv-t">com.pod.matter resources over 24 hours</title>
+<desc id="lv-d">Growth since hour 0: matter fd rises steadily to +62%, matter memory to +47%, bluetoothd memory to +19%, while four other processes stay between -4% and +9%. Below, api_start_matter calls per hour stay between 116 and 160 all day.</desc>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="232.0" y2="232.0"/>
+<text class="lv-tick" x="42.4" y="235.5" text-anchor="end">-10%</text>
+<line class="lv-zero" x1="48.0" x2="530.0" y1="206.8" y2="206.8"/>
+<text class="lv-tick" x="42.4" y="209.9" text-anchor="end">0%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="181.5" y2="181.5"/>
+<text class="lv-tick" x="42.4" y="184.7" text-anchor="end">+10%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="156.2" y2="156.2"/>
+<text class="lv-tick" x="42.4" y="159.5" text-anchor="end">+20%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="131.0" y2="131.0"/>
+<text class="lv-tick" x="42.4" y="134.2" text-anchor="end">+30%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="105.8" y2="105.8"/>
+<text class="lv-tick" x="42.4" y="108.9" text-anchor="end">+40%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="80.5" y2="80.5"/>
+<text class="lv-tick" x="42.4" y="83.7" text-anchor="end">+50%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="55.2" y2="55.2"/>
+<text class="lv-tick" x="42.4" y="58.5" text-anchor="end">+60%</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="30.0" y2="30.0"/>
+<text class="lv-tick" x="42.4" y="33.2" text-anchor="end">+70%</text>
+<text class="lv-axis" x="48.0" y="16">growth since hour 0</text>
+<polygon class="lv-band" points="48.0,206.8 68.1,200.7 88.2,206.2 108.2,199.4 128.3,200.7 148.4,199.4 168.5,199.4 188.6,199.7 208.7,199.4 228.8,195.9 248.8,195.9 268.9,196.4 289.0,199.7 309.1,190.3 329.2,194.1 349.2,194.8 369.3,189.6 389.4,190.1 409.5,187.5 429.6,192.1 449.7,184.3 469.8,187.3 489.8,187.8 509.9,183.0 530.0,186.3 530.0,209.5 509.9,217.6 489.8,214.6 469.8,212.3 449.7,212.8 429.6,217.6 409.5,217.6 389.4,212.3 369.3,217.6 349.2,217.6 329.2,211.5 309.1,217.6 289.0,214.1 268.9,214.1 248.8,214.1 228.8,212.3 208.7,210.8 188.6,212.8 168.5,217.6 148.4,209.3 128.3,217.6 108.2,210.5 88.2,211.5 68.1,212.3 48.0,206.8"/>
+<polyline class="lv-line lv-s3" points="48.0,206.8 68.1,200.7 88.2,198.6 108.2,192.3 128.3,194.4 148.4,192.6 168.5,188.5 188.6,190.1 208.7,184.6 228.8,194.7 248.8,185.8 268.9,183.0 289.0,180.8 309.1,181.0 329.2,176.7 349.2,172.4 369.3,174.6 389.4,170.4 409.5,173.4 429.6,166.4 449.7,173.9 469.8,164.8 489.8,163.3 509.9,162.8 530.0,159.5"/>
+<polyline class="lv-line lv-s2" points="48.0,206.8 68.1,204.5 88.2,203.7 108.2,199.9 128.3,183.8 148.4,184.6 168.5,174.9 188.6,177.4 208.7,168.6 228.8,166.1 248.8,162.8 268.9,156.8 289.0,148.7 309.1,144.3 329.2,141.4 349.2,137.6 369.3,131.7 389.4,124.0 409.5,111.1 429.6,117.8 449.7,113.6 469.8,109.8 489.8,100.2 509.9,94.1 530.0,89.1"/>
+<polyline class="lv-line lv-s1" points="48.0,206.8 68.1,204.2 88.2,193.6 108.2,188.4 128.3,183.0 148.4,175.2 168.5,167.3 188.6,164.5 208.7,154.3 228.8,146.1 248.8,138.3 268.9,133.0 289.0,127.9 309.1,122.7 329.2,114.6 349.2,104.2 369.3,104.2 389.4,93.7 409.5,85.8 429.6,78.0 449.7,75.2 469.8,67.3 489.8,59.6 509.9,51.5 530.0,48.9"/>
+<circle class="lv-dot lv-s1" cx="530.0" cy="48.9" r="4"/>
+<text class="lv-lab" x="539.4" y="52.6">matter fd +62%</text>
+<circle class="lv-dot lv-s2" cx="530.0" cy="89.1" r="4"/>
+<text class="lv-lab" x="539.4" y="92.8">matter memory +47%</text>
+<circle class="lv-dot lv-s3" cx="530.0" cy="159.5" r="4"/>
+<text class="lv-lab" x="539.4" y="163.2">bluetoothd memory +19%</text>
+<text class="lv-lab" x="539.4" y="204.1">4 other processes</text>
+<text class="lv-axis" x="48.0" y="268.0">api_start_matter calls per hour</text>
+<line class="lv-zero" x1="48.0" x2="530.0" y1="360.0" y2="360.0"/>
+<text class="lv-tick" x="42.4" y="363.5" text-anchor="end">0</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="324.4" y2="324.4"/>
+<text class="lv-tick" x="42.4" y="327.9" text-anchor="end">80</text>
+<line class="lv-grid" x1="48.0" x2="530.0" y1="288.9" y2="288.9"/>
+<text class="lv-tick" x="42.4" y="292.4" text-anchor="end">160</text>
+<path class="lv-bar" d="M48.9,360 V304.9 Q48.9,300.9 52.7,300.9 H63.3 Q67.1,300.9 67.1,304.9 V360 Z"/>
+<path class="lv-bar" d="M69.0,360 V308.0 Q69.0,304.0 72.8,304.0 H83.5 Q87.3,304.0 87.3,308.0 V360 Z"/>
+<path class="lv-bar" d="M89.1,360 V293.3 Q89.1,289.3 92.9,289.3 H103.5 Q107.3,289.3 107.3,293.3 V360 Z"/>
+<path class="lv-bar" d="M109.2,360 V300.9 Q109.2,296.9 113.0,296.9 H123.6 Q127.4,296.9 127.4,300.9 V360 Z"/>
+<path class="lv-bar" d="M129.2,360 V312.4 Q129.2,308.4 133.0,308.4 H143.7 Q147.5,308.4 147.5,312.4 V360 Z"/>
+<path class="lv-bar" d="M149.4,360 V303.1 Q149.4,299.1 153.2,299.1 H163.8 Q167.6,299.1 167.6,303.1 V360 Z"/>
+<path class="lv-bar" d="M169.4,360 V297.8 Q169.4,293.8 173.2,293.8 H183.8 Q187.6,293.8 187.6,297.8 V360 Z"/>
+<path class="lv-bar" d="M189.5,360 V303.6 Q189.5,299.6 193.3,299.6 H204.0 Q207.8,299.6 207.8,303.6 V360 Z"/>
+<path class="lv-bar" d="M209.6,360 V299.6 Q209.6,295.6 213.4,295.6 H224.0 Q227.8,295.6 227.8,299.6 V360 Z"/>
+<path class="lv-bar" d="M229.7,360 V304.4 Q229.7,300.4 233.5,300.4 H244.1 Q247.9,300.4 247.9,304.4 V360 Z"/>
+<path class="lv-bar" d="M249.7,360 V297.3 Q249.7,293.3 253.5,293.3 H264.2 Q268.0,293.3 268.0,297.3 V360 Z"/>
+<path class="lv-bar" d="M269.9,360 V309.3 Q269.9,305.3 273.7,305.3 H284.3 Q288.1,305.3 288.1,309.3 V360 Z"/>
+<path class="lv-bar" d="M289.9,360 V298.2 Q289.9,294.2 293.7,294.2 H304.3 Q308.1,294.2 308.1,298.2 V360 Z"/>
+<path class="lv-bar" d="M310.0,360 V296.9 Q310.0,292.9 313.8,292.9 H324.5 Q328.3,292.9 328.3,296.9 V360 Z"/>
+<path class="lv-bar" d="M330.1,360 V302.2 Q330.1,298.2 333.9,298.2 H344.5 Q348.3,298.2 348.3,302.2 V360 Z"/>
+<path class="lv-bar" d="M350.2,360 V295.1 Q350.2,291.1 354.0,291.1 H364.6 Q368.4,291.1 368.4,295.1 V360 Z"/>
+<path class="lv-bar" d="M370.2,360 V300.0 Q370.2,296.0 374.0,296.0 H384.7 Q388.5,296.0 388.5,300.0 V360 Z"/>
+<path class="lv-bar" d="M390.4,360 V300.9 Q390.4,296.9 394.2,296.9 H404.8 Q408.6,296.9 408.6,300.9 V360 Z"/>
+<path class="lv-bar" d="M410.4,360 V292.9 Q410.4,288.9 414.2,288.9 H424.8 Q428.6,288.9 428.6,292.9 V360 Z"/>
+<path class="lv-bar" d="M430.5,360 V297.8 Q430.5,293.8 434.3,293.8 H445.0 Q448.8,293.8 448.8,297.8 V360 Z"/>
+<path class="lv-bar" d="M450.6,360 V303.1 Q450.6,299.1 454.4,299.1 H465.0 Q468.8,299.1 468.8,303.1 V360 Z"/>
+<path class="lv-bar" d="M470.7,360 V301.3 Q470.7,297.3 474.5,297.3 H485.1 Q488.9,297.3 488.9,301.3 V360 Z"/>
+<path class="lv-bar" d="M490.7,360 V300.0 Q490.7,296.0 494.5,296.0 H505.2 Q509.0,296.0 509.0,300.0 V360 Z"/>
+<path class="lv-bar" d="M510.9,360 V303.1 Q510.9,299.1 514.7,299.1 H525.3 Q529.1,299.1 529.1,303.1 V360 Z"/>
+<text class="lv-tick" x="48.0" y="376.0" text-anchor="middle">0h</text>
+<text class="lv-tick" x="168.5" y="376.0" text-anchor="middle">6h</text>
+<text class="lv-tick" x="289.0" y="376.0" text-anchor="middle">12h</text>
+<text class="lv-tick" x="409.5" y="376.0" text-anchor="middle">18h</text>
+<text class="lv-tick" x="530.0" y="376.0" text-anchor="middle">24h</text>
+<line class="lv-cross" x1="0" x2="0" y1="30.0" y2="360.0" visibility="hidden"/>
+<rect class="lv-hit" x="48.0" y="30.0" width="482" height="346"/>
+</svg>
+          <div class="lv-tip" hidden></div>
+        </div>
+        <details class="lv-data"><summary>Show the numbers</summary>
+          <div class="table-scroll"><table class="ref-table"><thead><tr><th>hour</th><th class="r">matter fd</th><th class="r">matter MB</th><th class="r">bluetoothd mem</th><th class="r">others</th><th class="r">calls / h</th></tr></thead><tbody><tr><td>0h</td><td class="r">96</td><td class="r">113.1</td><td class="r">+0.0%</td><td class="r">+0.0% … +0.0%</td><td class="r">133</td></tr><tr><td>1h</td><td class="r">97</td><td class="r">114.1</td><td class="r">+2.4%</td><td class="r">-2.2% … +2.4%</td><td class="r">126</td></tr><tr><td>2h</td><td class="r">101</td><td class="r">114.4</td><td class="r">+3.2%</td><td class="r">-1.9% … +0.2%</td><td class="r">159</td></tr><tr><td>3h</td><td class="r">103</td><td class="r">116.1</td><td class="r">+5.7%</td><td class="r">-1.5% … +2.9%</td><td class="r">142</td></tr><tr><td>4h</td><td class="r">105</td><td class="r">123.4</td><td class="r">+4.9%</td><td class="r">-4.3% … +2.4%</td><td class="r">116</td></tr><tr><td>5h</td><td class="r">108</td><td class="r">123.0</td><td class="r">+5.6%</td><td class="r">-1.0% … +2.9%</td><td class="r">137</td></tr><tr><td>6h</td><td class="r">111</td><td class="r">127.3</td><td class="r">+7.2%</td><td class="r">-4.3% … +2.9%</td><td class="r">149</td></tr><tr><td>7h</td><td class="r">112</td><td class="r">126.2</td><td class="r">+6.6%</td><td class="r">-2.4% … +2.8%</td><td class="r">136</td></tr><tr><td>8h</td><td class="r">116</td><td class="r">130.1</td><td class="r">+8.8%</td><td class="r">-1.6% … +2.9%</td><td class="r">145</td></tr><tr><td>9h</td><td class="r">119</td><td class="r">131.2</td><td class="r">+4.8%</td><td class="r">-2.2% … +4.3%</td><td class="r">134</td></tr><tr><td>10h</td><td class="r">122</td><td class="r">132.7</td><td class="r">+8.3%</td><td class="r">-2.9% … +4.3%</td><td class="r">150</td></tr><tr><td>11h</td><td class="r">124</td><td class="r">135.5</td><td class="r">+9.4%</td><td class="r">-2.9% … +4.1%</td><td class="r">123</td></tr><tr><td>12h</td><td class="r">126</td><td class="r">139.0</td><td class="r">+10.3%</td><td class="r">-2.9% … +2.8%</td><td class="r">148</td></tr><tr><td>13h</td><td class="r">128</td><td class="r">141.0</td><td class="r">+10.2%</td><td class="r">-4.3% … +6.5%</td><td class="r">151</td></tr><tr><td>14h</td><td class="r">131</td><td class="r">142.3</td><td class="r">+11.9%</td><td class="r">-1.9% … +5.0%</td><td class="r">139</td></tr><tr><td>15h</td><td class="r">135</td><td class="r">144.1</td><td class="r">+13.6%</td><td class="r">-4.3% … +4.7%</td><td class="r">155</td></tr><tr><td>16h</td><td class="r">135</td><td class="r">146.6</td><td class="r">+12.7%</td><td class="r">-4.3% … +6.8%</td><td class="r">144</td></tr><tr><td>17h</td><td class="r">139</td><td class="r">150.2</td><td class="r">+14.4%</td><td class="r">-2.2% … +6.6%</td><td class="r">142</td></tr><tr><td>18h</td><td class="r">142</td><td class="r">155.9</td><td class="r">+13.2%</td><td class="r">-4.3% … +7.6%</td><td class="r">160</td></tr><tr><td>19h</td><td class="r">145</td><td class="r">152.9</td><td class="r">+16.0%</td><td class="r">-4.3% … +5.8%</td><td class="r">149</td></tr><tr><td>20h</td><td class="r">146</td><td class="r">154.8</td><td class="r">+13.0%</td><td class="r">-2.4% … +8.9%</td><td class="r">137</td></tr><tr><td>21h</td><td class="r">149</td><td class="r">156.5</td><td class="r">+16.6%</td><td class="r">-2.2% … +7.7%</td><td class="r">141</td></tr><tr><td>22h</td><td class="r">152</td><td class="r">160.8</td><td class="r">+17.2%</td><td class="r">-3.1% … +7.5%</td><td class="r">144</td></tr><tr><td>23h</td><td class="r">155</td><td class="r">163.4</td><td class="r">+17.4%</td><td class="r">-4.3% … +9.4%</td><td class="r">137</td></tr><tr><td>24h</td><td class="r">156</td><td class="r">165.7</td><td class="r">+18.7%</td><td class="r">-1.1% … +8.1%</td><td class="r">&mdash;</td></tr></tbody></table></div>
+        </details>
+      </div>
+      <figcaption><b>Fig. 3</b> — <code>com.pod.matter</code> over the 24-hour run, from <code>Log/ResourceSnapshot.json</code> (simulated driver). Top: growth since hour 0, so processes of different sizes share one scale. Bottom: how hard matter was being worked in each hour.</figcaption>
+    </figure>
     <ul class="notes">
-      <li><b><code>transitions</code>/<code>transitionsWalked</code> is the chain's own denominator.</b> wifi's chain names exactly 9 transitions (<code>MarkovPolicy.chains["wifi"]</code>); the wifi-worker walked all 9, because a walk only ever rolls what the chain already describes.</li>
-      <li><b><code>pairs</code>/<code>pairsTried</code> is a bigger, chain-independent denominator.</b> <code>pairs = states × every action tagged component="wifi"</code> — 3 × 14 = 42, whether or not the chain or a guard would ever legally connect that state to that action. <code>pairsTried</code> counts what actually got attempted, by any worker, accepted or refused — 12 of 42 in this run, which is why a probe exists at all.</li>
+      <li><b>Shape: a leak, not a cache.</b> The fd line climbs at about the same rate from the first hour to the last and never flattens. A cache filling up would level off.</li>
+      <li><b>Control: it's matter, not the whole system.</b> Four other processes stay inside a narrow band around zero. Matter's growth isn't the device as a whole slowly filling up. bluetoothd memory also rises, more slowly, and has its own flag.</li>
+      <li><b>Cause: the chart can't separate time from work.</b> Matter was commissioned 116–160 times every hour, all day. Growth that follows the clock and growth that follows the calls draw the same straight line here. That limit is what the next run is designed to resolve.</li>
     </ul>
 
-    <p class="claim">AI writes back two things: <code>Analysis/report.md</code>, and one file per proposal under <code>Analysis/proposals/</code>. The <code>RuleBasedAnalyst</code> demo above covers the basic case — cluster on <code>ErrorSignature</code>, propose a regression or flag a model correction. A real LLM analyst reaches further, in ways this rule-based stand-in doesn't attempt:</p>
+    <p class="subhead">④ Propose — what should the next run do?</p>
+    <div class="table-scroll">
+      <table class="ref-table">
+        <thead><tr><th>proposal</th><th>what it asks for</th><th>comes from</th></tr></thead>
+        <tbody>
+          <tr><td>regression</td><td>Replay the matter and bt reproductions; if they reproduce, confirm the device bug</td><td>③</td></tr>
+          <tr><td>targeted_run</td><td>Probe wifi with illegal calls, so its refusals actually get tested</td><td>② wifi rejection</td></tr>
+          <tr><td>targeted_run</td><td>Leave matter idle for the first half of the run, then commission it heavily. If the fd slope changes with the calls, the leak is in commissioning.</td><td>③ matter fd chart</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="claim">Every proposal starts as <code>pending</code>. Once a person accepts it, the planner (Slide 08) reads it into the next run. Nothing here changes <code>ActionDatabase</code> or <code>MarkovPolicy</code>.</p>
 
-    <p class="subhead">Beyond ErrorSignature — identify new findings</p>
-    <p class="claim">Not every real problem fails its own assertion. A postcondition that keeps resolving just inside its budget, an action that gets refused the same way every time without ever tripping <code>ok=False</code> — none of this reaches <code>Analysis/ErrorSignature.json</code>, because clustering only ever fires on a failed oracle check. Only something reading all of <code>Log/EngineEvents.jsonl</code> — not the pre-computed files — can notice a repeat that Python never flagged as a failure.</p>
-
-    <p class="subhead">Initiate a bug, and follow up</p>
-    <p class="claim">When a finding reads as the device's fault rather than the model's, and the analyst has been granted access to a real bug tracker, it can go further than <code>report.md</code>: open a ticket with the log attached, reassign it to the SWE who owns that component, and check bug history first so the same issue arriving three releases running becomes one ticket, not three. None of this is <code>pod_mbt/</code>'s job — it's a downstream integration a real deployment would wire up, consuming <code>report.md</code> as its input.</p>
-
-    <p class="subhead">Self-healing on the model</p>
-    <p class="claim">A wrong probability row comes back as a corrected row, a wrong guard or postcondition as corrected text, and either way a person accepts it before it reaches <code>MarkovPolicy</code> or <code>ActionDatabase</code> &mdash; nothing in <code>pod_mbt/</code> lets an analyst reweight anything at runtime. The harder judgment sits one level up: a repeated <code>illegal_call_accepted</code> might be that small a fix, or it might mean the Action Database has no action at all for what the device just did — a modeling gap, not a bad parameter — and only a real LLM reading the reproduction can tell the two apart and propose the missing action; <code>RuleBasedAnalyst</code> structurally can't: it reads the clustered signatures and proposes from the actions already named in them.</p>
+    <p class="subhead">Where AI can go further</p>
+    <ul class="notes">
+      <li><b>Across releases:</b> compare against the previous firmware to catch slow drifts that no single run shows.</li>
+      <li><b>Shrink a reproduction:</b> cut a six-step repro down to the fewest steps that still fail.</li>
+      <li><b>Find model gaps:</b> spot when the device did something the model has no action for, and draft that action.</li>
+      <li><b>File and follow the bug:</b> check for duplicates, attach the log and the repro, and re-run once a fix lands.</li>
+    </ul>
   </section>
 
   <section id="actionled">
@@ -1752,6 +1905,34 @@ per component    wifi 2,634   bt 2,645   matter 2,650   system 2,629</pre>
   });
   // Skip anything a host renderer already processed.
   mermaid.run({querySelector:'pre.mermaid:not([data-processed])'});
+})();
+</script>
+<script>
+// Slide 05 Fig. 3: one crosshair across both panels, one tooltip for the hour under the pointer.
+(function(){
+  var fig=document.getElementById('leakviz'); if(!fig) return;
+  var rows=JSON.parse(fig.dataset.rows), svg=fig.querySelector('svg'), hit=fig.querySelector('.lv-hit'),
+      cross=fig.querySelector('.lv-cross'), tip=fig.querySelector('.lv-tip'), wrap=fig.querySelector('.lv-wrap');
+  var L=48, R=530;
+  function sign(v){return (v>0?'+':'')+v.toFixed(1)+'%';}
+  function show(e){
+    var pt=svg.createSVGPoint(); pt.x=e.clientX; pt.y=e.clientY;
+    var p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    var h=Math.max(0,Math.min(24,Math.round((p.x-L)/(R-L)*24))), r=rows[h], cx=L+(R-L)*h/24;
+    cross.setAttribute('x1',cx); cross.setAttribute('x2',cx); cross.setAttribute('visibility','visible');
+    tip.innerHTML='<b>Hour '+h+'</b><br>'+
+      '<i style="background:var(--s1)"></i>matter fd '+r.fd+' ('+sign(r.fdp)+')<br>'+
+      '<i style="background:var(--s2)"></i>matter memory '+r.mb+' MB ('+sign(r.mbp)+')<br>'+
+      '<i style="background:var(--s3)"></i>bluetoothd memory '+sign(r.bt)+'<br>'+
+      'others '+sign(r.lo)+' … '+sign(r.hi)+'<br>'+
+      'start_matter calls '+(r.calls==null?'—':r.calls+' this hour');
+    tip.hidden=false;
+    var box=wrap.getBoundingClientRect(), px=(cx/720)*box.width, w=tip.offsetWidth;
+    tip.style.left=Math.max(0,Math.min(box.width-w, px+12+w>box.width ? px-w-12 : px+12))+'px';
+  }
+  hit.addEventListener('pointermove',show);
+  hit.addEventListener('pointerdown',show);
+  hit.addEventListener('pointerleave',function(){tip.hidden=true;cross.setAttribute('visibility','hidden');});
 })();
 </script>
 </body>

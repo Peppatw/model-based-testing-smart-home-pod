@@ -76,6 +76,12 @@ class History:
                 f = folder / rel
                 if f.is_file():
                     entry[key] = json.loads(f.read_text())
+            # Only proposals a person has accepted reach a plan. A pending one is the analyst's
+            # suggestion, and a planner acting on it would be the analyst planning by proxy.
+            entry["accepted"] = [
+                json.loads(pf.read_text())
+                for pf in sorted((folder / "Analysis" / "proposals").glob("PROP-*.json"))]
+            entry["accepted"] = [pr for pr in entry["accepted"] if pr.get("status") == "accepted"]
             runs.append(entry)
         return cls(runs)
 
@@ -97,6 +103,11 @@ class History:
         every = {(c, st, a.name) for c in policy.chains for st in policy.states(c)
                  for a in ACTION_DB if a.component == c}
         return every - tried
+
+    def accepted_targets(self) -> list[dict[str, Any]]:
+        """`targeted_run` proposals a person accepted: a cell an investigation wants re-run."""
+        return [{"from": r["folder"], **pr} for r in self.runs
+                for pr in r.get("accepted", []) if pr.get("type") == "targeted_run"]
 
     def open_signatures(self) -> list[dict[str, Any]]:
         """Distinct failures seen before, newest run first — regression candidates."""
@@ -198,6 +209,23 @@ class RuleBasedPlanner:
             if pool or not history.runs:
                 probe.append({"workerId": f"{c}-probe", "component": c,
                               "avgIntervalMs": 180_000, "pool": pool})
+        # 2b. Cells an investigation asked for, once a person accepted the proposal. They join
+        #     the probe pool for their component; the guard still judges every call.
+        targets = [t for t in history.accepted_targets()
+                   if t["proposed"].get("component") in scope]
+        for t in targets:
+            c = t["proposed"]["component"]
+            pr = next((p for p in probe if p["component"] == c), None)
+            if pr is None:
+                pr = {"workerId": f"{c}-probe", "component": c, "avgIntervalMs": 180_000,
+                      "pool": []}
+                probe.append(pr)
+            pr["pool"] = sorted(set(pr["pool"]) | set(t["proposed"].get("actions", [])))
+        if targets:
+            rationale.append(
+                f"{len(targets)} accepted targeted_run proposal(s) "
+                f"({', '.join(t['id'] for t in targets)}) add their actions to the probe pool: "
+                "an investigation asked for those cells to be re-run on purpose.")
         if probe:
             n = sum(len(p.get("pool", [])) for p in probe)
             rationale.append(
@@ -247,6 +275,7 @@ class RuleBasedPlanner:
             "intent": {"changed": changed, "scope": scope, "minutes": intent.minutes,
                        "bench": intent.bench, "note": intent.note},
             "basedOn": [r["folder"] for r in history.runs],
+            "fromProposals": [t["id"] for t in targets],
             "generatedBy": type(self).__name__,
             "rationale": rationale,
             "notCovering": not_covering,
